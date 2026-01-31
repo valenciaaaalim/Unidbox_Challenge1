@@ -14,7 +14,6 @@ import {
   Bell,
   Check,
   Loader2,
-  Recycle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ const navItems = [
   { path: "/dealer/catalog", label: "Catalog", icon: Package },
   { path: "/dealer/cart", label: "Cart", icon: ShoppingCart },
   { path: "/dealer/orders", label: "Orders", icon: ClipboardList },
-  { path: "/dealer/lifecycle", label: "My Products", icon: Recycle, isNew: true },
   { path: "/dealer/loyalty", label: "Loyalty", icon: Trophy },
 ];
 
@@ -209,8 +207,9 @@ export default function DealerLayout({ children }: DealerLayoutProps) {
   const mockDealer = dealers[0];
   const userName = user?.name || mockDealer.name;
   const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const userTier = (user?.dealerTier || mockDealer.tier) as keyof typeof loyaltyTiers;
-  const tierInfo = loyaltyTiers[userTier];
+  // Ensure userTier is a valid key, default to 'silver' if null/undefined
+  const userTier = (user?.dealerTier || mockDealer.tier || 'silver') as keyof typeof loyaltyTiers;
+  const tierInfo = loyaltyTiers[userTier] || loyaltyTiers.silver;
 
   return (
     <div className="min-h-screen bg-background flex">

@@ -34,8 +34,9 @@ export default function DealerDashboard() {
   // Use real logged-in user data, fallback to first mock dealer for demo stats
   const mockDealer = dealers[0]; // For demo stats like orderCount, totalSpend
   const userName = user?.name || mockDealer.name;
-  const userTier = (user?.dealerTier || mockDealer.tier) as keyof typeof loyaltyTiers;
-  const tierInfo = loyaltyTiers[userTier];
+  // Ensure userTier is a valid key, default to 'silver' if null/undefined
+  const userTier = (user?.dealerTier || mockDealer.tier || 'silver') as keyof typeof loyaltyTiers;
+  const tierInfo = loyaltyTiers[userTier] || loyaltyTiers.silver;
   const recentOrders = orders.filter((o) => o.dealerId === mockDealer.id).slice(0, 3);
   const suggestedProducts = predictiveCart.suggestedItems.map((item) => ({
     ...item,

@@ -28,6 +28,15 @@ import {
   getSessionMessages,
   getRecentMessages,
   updateChatSessionSummary,
+  createNotification,
+  getUserNotifications,
+  getUnreadNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getAllDealers,
+  getDealerById,
+  getDealerOrderStats,
 } from "./db";
 
 // Message schema for chat
@@ -457,6 +466,153 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await updateChatSessionSummary(input.sessionId, input.summary);
         return { success: true };
+      }),
+  }),
+
+  // ============ NOTIFICATIONS ROUTER ============
+  notifications: router({
+    // Get all notifications for current user
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return await getUserNotifications(ctx.user.id);
+    }),
+    
+    // Get unread notifications
+    unread: protectedProcedure.query(async ({ ctx }) => {
+      return await getUnreadNotifications(ctx.user.id);
+    }),
+    
+    // Get unread count
+    unreadCount: protectedProcedure.query(async ({ ctx }) => {
+      return await getUnreadNotificationCount(ctx.user.id);
+    }),
+    
+    // Mark notification as read
+    markRead: protectedProcedure
+      .input(z.object({ notificationId: z.number() }))
+      .mutation(async ({ input }) => {
+        await markNotificationAsRead(input.notificationId);
+        return { success: true };
+      }),
+    
+    // Mark all notifications as read
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      await markAllNotificationsAsRead(ctx.user.id);
+      return { success: true };
+    }),
+    
+    // Send reminder to dealer (admin only)
+    sendReminder: protectedProcedure
+      .input(z.object({
+        dealerId: z.number(),
+        dealerName: z.string(),
+        dealerCompany: z.string().optional(),
+        daysSinceLastOrder: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Generate AI message for the reminder
+        const prompt = `Generate a friendly, professional re-engagement message for a wholesale dealer who hasn't ordered in ${input.daysSinceLastOrder || 'a while'} days.
+
+Dealer Name: ${input.dealerName}
+Company: ${input.dealerCompany || 'their company'}
+
+The message should:
+1. Be warm and personal (use their name)
+2. Mention we noticed they haven't ordered recently
+3. Offer to help with any questions or concerns
+4. Mention any new products or promotions
+5. Encourage them to reach out or place an order
+6. Be concise (2-3 sentences max)
+
+Do NOT include any subject line, just the message body.`;
+
+        let messageContent = '';
+        
+        try {
+          const response = await invokeLLM({
+            messages: [
+              { role: 'system', content: 'You are a helpful assistant that writes professional business messages.' },
+              { role: 'user', content: prompt },
+            ],
+          });
+          
+          const assistantMessage = response.choices[0]?.message;
+          messageContent = typeof assistantMessage?.content === 'string'
+            ? assistantMessage.content
+            : `Hi ${input.dealerName}, we noticed it's been a while since your last order. We're here to help with any questions you might have. Feel free to reach out or browse our latest products!`;
+        } catch (error) {
+          console.error('Failed to generate AI message:', error);
+          messageContent = `Hi ${input.dealerName}, we noticed it's been a while since your last order. We're here to help with any questions you might have. Feel free to reach out or browse our latest products!`;
+        }
+        
+        // Create notification
+        const notification = await createNotification({
+          recipientId: input.dealerId,
+          senderId: ctx.user.id,
+          type: 'reminder',
+          title: 'We miss you!',
+          message: messageContent,
+          metadata: {
+            dealerName: input.dealerName,
+            dealerCompany: input.dealerCompany,
+            daysSinceLastOrder: input.daysSinceLastOrder,
+          },
+        });
+        
+        return {
+          success: true,
+          notification,
+          message: `Reminder sent to ${input.dealerName}`,
+        };
+      }),
+  }),
+
+  // ============ DEALERS ROUTER (Admin) ============
+  dealers: router({
+    // Get all dealers
+    list: protectedProcedure.query(async () => {
+      const dealers = await getAllDealers();
+      
+      // Get order stats for each dealer
+      const dealersWithStats = await Promise.all(
+        dealers.map(async (dealer) => {
+          const stats = await getDealerOrderStats(dealer.id);
+          const daysSinceLastOrder = stats.lastOrderDate
+            ? Math.floor((Date.now() - stats.lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+          
+          return {
+            ...dealer,
+            ...stats,
+            daysSinceLastOrder,
+            isAtRisk: daysSinceLastOrder !== null && daysSinceLastOrder > 7,
+          };
+        })
+      );
+      
+      return dealersWithStats;
+    }),
+    
+    // Get dealer by ID with full details
+    get: protectedProcedure
+      .input(z.object({ dealerId: z.number() }))
+      .query(async ({ input }) => {
+        const dealer = await getDealerById(input.dealerId);
+        if (!dealer) return null;
+        
+        const stats = await getDealerOrderStats(input.dealerId);
+        const orders = await getUserOrders(input.dealerId);
+        
+        const daysSinceLastOrder = stats.lastOrderDate
+          ? Math.floor((Date.now() - stats.lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        
+        return {
+          ...dealer,
+          ...stats,
+          daysSinceLastOrder,
+          isAtRisk: daysSinceLastOrder !== null && daysSinceLastOrder > 7,
+          recentOrders: orders.slice(0, 10),
+        };
       }),
   }),
 });

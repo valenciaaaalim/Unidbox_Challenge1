@@ -145,3 +145,35 @@ export const chatMessages = mysqlTable("chat_messages", {
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = typeof chatMessages.$inferInsert;
+
+
+/**
+ * Notifications table - stores messages sent between admin and dealers
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Recipient user ID (dealer) */
+  recipientId: int("recipientId").notNull(),
+  /** Sender user ID (admin) - null for system notifications */
+  senderId: int("senderId"),
+  /** Notification type */
+  type: mysqlEnum("type", ["reminder", "promotion", "order_update", "system"]).default("reminder").notNull(),
+  /** Notification title */
+  title: varchar("title", { length: 255 }).notNull(),
+  /** Notification message content */
+  message: text("message").notNull(),
+  /** Whether the notification has been read */
+  isRead: int("isRead").default(0).notNull(),
+  /** Additional metadata */
+  metadata: json("metadata").$type<{
+    dealerName?: string;
+    dealerCompany?: string;
+    daysSinceLastOrder?: number;
+    suggestedProducts?: string[];
+  }>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  readAt: timestamp("readAt"),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

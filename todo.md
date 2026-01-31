@@ -72,3 +72,29 @@
 - [x] Include DO number, order details, items
 - [x] Include shipping address and signature line
 - [x] Wire up download icon to trigger PDF download
+
+## Real-Time Notification System
+
+### Database & API
+- [x] Create notifications table in database schema
+- [x] Add notification tRPC routes (create, list, markRead)
+- [x] Push database schema changes
+
+### Admin Dealers Page
+- [x] Create View Details modal with dealer profile
+- [x] Show order history and purchase patterns
+- [x] Show loyalty tier progression
+- [x] Implement Send Reminder button functionality
+- [x] AI-generate personalized re-engagement messages
+- [x] Save notifications to database
+
+### Dealer Portal Notifications
+- [x] Add notification bell icon to dealer header
+- [x] Show unread count badge
+- [x] Create notification dropdown with message list
+- [x] Mark notifications as read on click
+- [x] Implement polling for real-time updates
+
+### Demo Flow
+- [x] Test admin sends reminder → dealer receives notification
+- [x] Verify real-time update works across tabs

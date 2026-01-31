@@ -6,24 +6,268 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Search,
   Users,
   AlertTriangle,
-  TrendingUp,
   Mail,
   Phone,
+  X,
+  ShoppingCart,
+  DollarSign,
+  Calendar,
+  TrendingUp,
+  Package,
+  Send,
+  Loader2,
+  CheckCircle,
 } from "lucide-react";
-import { dealers, loyaltyTiers, adminMetrics } from "@/lib/mockData";
+import { dealers, loyaltyTiers, adminMetrics, orders } from "@/lib/mockData";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 /*
  * Admin Dealers
  * Design: Premium SaaS Elegance
- * Features: Dealer management, at-risk alerts, tier overview
+ * Features: Dealer management, at-risk alerts, tier overview, View Details modal, Send Reminder
  */
+
+interface DealerDetailsModalProps {
+  dealer: typeof dealers[0] | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function DealerDetailsModal({ dealer, isOpen, onClose }: DealerDetailsModalProps) {
+  if (!dealer) return null;
+  
+  const tierInfo = loyaltyTiers[dealer.tier];
+  const dealerOrders = orders.filter(o => o.dealerId === dealer.id);
+  const isAtRisk = adminMetrics.atRiskDealers.some(r => r.dealerId === dealer.id);
+  const riskInfo = adminMetrics.atRiskDealers.find(r => r.dealerId === dealer.id);
+  
+  // Calculate order trend (mock data)
+  const lastMonthOrders = dealerOrders.filter(o => {
+    const orderDate = new Date(o.createdAt);
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    return orderDate >= lastMonth;
+  }).length;
+  
+  // Get discount percentage based on tier
+  const tierDiscount = dealer.tier === 'platinum' ? 8 : dealer.tier === 'gold' ? 5 : 0;
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <Avatar className="w-12 h-12">
+              <AvatarFallback
+                className="text-white font-semibold text-lg"
+                style={{ backgroundColor: tierInfo.color }}
+              >
+                {dealer.avatar}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <span>{dealer.name}</span>
+                <Badge
+                  className="text-white text-xs"
+                  style={{ backgroundColor: tierInfo.color }}
+                >
+                  {tierInfo.name}
+                </Badge>
+                {isAtRisk && (
+                  <Badge variant="outline" className="border-amber-500 text-amber-600">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    At Risk
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground font-normal">{dealer.company}</p>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6 mt-4">
+          {/* At-Risk Warning */}
+          {isAtRisk && riskInfo && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-700">At-Risk Dealer</p>
+                <p className="text-sm text-amber-600">
+                  Last order was {riskInfo.daysSinceLastOrder} days ago. Consider sending a reminder to re-engage.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {/* Contact Information */}
+          <div>
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Contact Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">Email</p>
+                <p className="font-medium">{dealer.email}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">Phone</p>
+                <p className="font-medium">{dealer.phone}</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Key Metrics */}
+          <div>
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Performance Metrics
+            </h3>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="bg-primary/5 rounded-lg p-3 text-center">
+                <ShoppingCart className="w-5 h-5 text-primary mx-auto mb-1" />
+                <p className="text-xl font-bold">{dealer.orderCount}</p>
+                <p className="text-xs text-muted-foreground">Total Orders</p>
+              </div>
+              <div className="bg-green-500/5 rounded-lg p-3 text-center">
+                <DollarSign className="w-5 h-5 text-green-500 mx-auto mb-1" />
+                <p className="text-xl font-bold">${(dealer.totalSpend / 1000).toFixed(0)}k</p>
+                <p className="text-xs text-muted-foreground">Total Spend</p>
+              </div>
+              <div className="bg-violet-500/5 rounded-lg p-3 text-center">
+                <Package className="w-5 h-5 text-violet-500 mx-auto mb-1" />
+                <p className="text-xl font-bold">${dealer.avgOrderValue.toFixed(0)}</p>
+                <p className="text-xs text-muted-foreground">Avg Order</p>
+              </div>
+              <div className="bg-blue-500/5 rounded-lg p-3 text-center">
+                <Calendar className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+                <p className="text-xl font-bold">{lastMonthOrders}</p>
+                <p className="text-xs text-muted-foreground">This Month</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Loyalty Tier Progress */}
+          <div>
+            <h3 className="font-semibold mb-3">Loyalty Tier Progress</h3>
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm">Current Tier: <span className="font-semibold" style={{ color: tierInfo.color }}>{tierInfo.name}</span></span>
+                <span className="text-sm text-muted-foreground">{tierDiscount}% discount</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 mb-2">
+                <div 
+                  className="h-2 rounded-full transition-all"
+                  style={{ 
+                    width: `${Math.min((dealer.totalSpend / 300000) * 100, 100)}%`,
+                    backgroundColor: tierInfo.color 
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {dealer.tier === 'platinum' 
+                  ? 'Maximum tier reached!' 
+                  : `$${((dealer.tier === 'gold' ? 250000 : dealer.tier === 'silver' ? 100000 : 50000) - dealer.totalSpend).toLocaleString()} more to next tier`
+                }
+              </p>
+            </div>
+          </div>
+          
+          {/* Recent Orders */}
+          <div>
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              Recent Orders
+            </h3>
+            {dealerOrders.length > 0 ? (
+              <div className="space-y-2">
+                {dealerOrders.slice(0, 5).map((order) => (
+                  <div 
+                    key={order.id}
+                    className="flex items-center justify-between bg-muted/50 rounded-lg p-3"
+                  >
+                    <div>
+                      <p className="font-medium">{order.id}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(order.createdAt).toLocaleDateString()} • {order.items.length} items
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">${order.subtotal.toLocaleString()}</p>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${
+                          order.status === 'delivered' ? 'border-green-500 text-green-600' :
+                          order.status === 'shipped' ? 'border-blue-500 text-blue-600' :
+                          order.status === 'processing' ? 'border-amber-500 text-amber-600' :
+                          'border-gray-500 text-gray-600'
+                        }`}
+                      >
+                        {order.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No orders yet</p>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function AdminDealers() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDealer, setSelectedDealer] = useState<typeof dealers[0] | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
+  const [sentReminders, setSentReminders] = useState<Set<string>>(new Set());
+
+  const sendReminderMutation = trpc.notifications.sendReminder.useMutation({
+    onSuccess: (data, variables) => {
+      toast.success(data.message);
+      setSentReminders(prev => {
+        const newSet = new Set(prev);
+        newSet.add(variables.dealerId.toString());
+        return newSet;
+      });
+      setSendingReminderId(null);
+    },
+    onError: (error) => {
+      toast.error(`Failed to send reminder: ${error.message}`);
+      setSendingReminderId(null);
+    },
+  });
+
+  const handleSendReminder = (dealer: typeof dealers[0]) => {
+    const riskInfo = adminMetrics.atRiskDealers.find(r => r.dealerId === dealer.id);
+    setSendingReminderId(dealer.id);
+    
+    // Extract numeric part from dealer ID (e.g., 'dealer-001' -> 1)
+    const numericId = parseInt(dealer.id.replace(/\D/g, ''), 10) || 1;
+    
+    sendReminderMutation.mutate({
+      dealerId: numericId,
+      dealerName: dealer.name,
+      dealerCompany: dealer.company,
+      daysSinceLastOrder: riskInfo?.daysSinceLastOrder,
+    });
+  };
 
   const filteredDealers = dealers.filter(
     (dealer) =>
@@ -122,6 +366,8 @@ export default function AdminDealers() {
             const riskInfo = adminMetrics.atRiskDealers.find(
               (r) => r.dealerId === dealer.id
             );
+            const isSending = sendingReminderId === dealer.id;
+            const hasSent = sentReminders.has(dealer.id);
 
             return (
               <motion.div
@@ -198,12 +444,40 @@ export default function AdminDealers() {
                     </div>
 
                     <div className="mt-4 flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedDealer(dealer);
+                          setIsDetailsOpen(true);
+                        }}
+                      >
                         View Details
                       </Button>
                       {isAtRisk && (
-                        <Button size="sm" className="flex-1 bg-amber-500 hover:bg-amber-600">
-                          Send Reminder
+                        <Button 
+                          size="sm" 
+                          className={`flex-1 ${hasSent ? 'bg-green-500 hover:bg-green-600' : 'bg-amber-500 hover:bg-amber-600'}`}
+                          onClick={() => handleSendReminder(dealer)}
+                          disabled={isSending || hasSent}
+                        >
+                          {isSending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              Sending...
+                            </>
+                          ) : hasSent ? (
+                            <>
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Sent
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4 mr-1" />
+                              Send Reminder
+                            </>
+                          )}
                         </Button>
                       )}
                     </div>
@@ -214,6 +488,16 @@ export default function AdminDealers() {
           })}
         </div>
       </div>
+      
+      {/* Dealer Details Modal */}
+      <DealerDetailsModal 
+        dealer={selectedDealer}
+        isOpen={isDetailsOpen}
+        onClose={() => {
+          setIsDetailsOpen(false);
+          setSelectedDealer(null);
+        }}
+      />
     </AdminLayout>
   );
 }

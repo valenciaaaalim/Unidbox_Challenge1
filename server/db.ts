@@ -385,3 +385,130 @@ export async function getRecentMessages(sessionId: string, limit: number = 20): 
   // Return in chronological order
   return messages.reverse();
 }
+
+
+// ============ NOTIFICATION HELPERS ============
+
+import { notifications, Notification, InsertNotification } from "../drizzle/schema";
+
+export async function createNotification(notification: InsertNotification): Promise<Notification> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(notifications).values(notification);
+  
+  const insertId = result[0].insertId;
+  const newNotification = await db.select().from(notifications).where(eq(notifications.id, insertId)).limit(1);
+  return newNotification[0];
+}
+
+export async function getUserNotifications(userId: number): Promise<Notification[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(notifications)
+    .where(eq(notifications.recipientId, userId))
+    .orderBy(desc(notifications.createdAt));
+}
+
+export async function getUnreadNotifications(userId: number): Promise<Notification[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(notifications)
+    .where(and(eq(notifications.recipientId, userId), eq(notifications.isRead, 0)))
+    .orderBy(desc(notifications.createdAt));
+}
+
+export async function getUnreadNotificationCount(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  
+  const result = await db.select().from(notifications)
+    .where(and(eq(notifications.recipientId, userId), eq(notifications.isRead, 0)));
+  
+  return result.length;
+}
+
+export async function markNotificationAsRead(notificationId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(notifications)
+    .set({ isRead: 1, readAt: new Date() })
+    .where(eq(notifications.id, notificationId));
+}
+
+export async function markAllNotificationsAsRead(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(notifications)
+    .set({ isRead: 1, readAt: new Date() })
+    .where(and(eq(notifications.recipientId, userId), eq(notifications.isRead, 0)));
+}
+
+export async function getAllDealers(): Promise<Array<{
+  id: number;
+  name: string | null;
+  email: string | null;
+  dealerTier: string | null;
+  lastSignedIn: Date;
+  createdAt: Date;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    dealerTier: users.dealerTier,
+    lastSignedIn: users.lastSignedIn,
+    createdAt: users.createdAt,
+  }).from(users).where(eq(users.role, 'user'));
+}
+
+export async function getDealerById(dealerId: number): Promise<{
+  id: number;
+  name: string | null;
+  email: string | null;
+  dealerTier: string | null;
+  lastSignedIn: Date;
+  createdAt: Date;
+} | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    dealerTier: users.dealerTier,
+    lastSignedIn: users.lastSignedIn,
+    createdAt: users.createdAt,
+  }).from(users).where(and(eq(users.id, dealerId), eq(users.role, 'user'))).limit(1);
+  
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getDealerOrderStats(dealerId: number): Promise<{
+  totalOrders: number;
+  totalSpend: number;
+  avgOrderValue: number;
+  lastOrderDate: Date | null;
+}> {
+  const db = await getDb();
+  if (!db) return { totalOrders: 0, totalSpend: 0, avgOrderValue: 0, lastOrderDate: null };
+  
+  const dealerOrders = await db.select().from(orders)
+    .where(eq(orders.userId, dealerId))
+    .orderBy(desc(orders.createdAt));
+  
+  const totalOrders = dealerOrders.length;
+  const totalSpend = dealerOrders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+  const avgOrderValue = totalOrders > 0 ? totalSpend / totalOrders : 0;
+  const lastOrderDate = dealerOrders.length > 0 ? dealerOrders[0].createdAt : null;
+  
+  return { totalOrders, totalSpend, avgOrderValue, lastOrderDate };
+}

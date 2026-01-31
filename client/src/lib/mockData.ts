@@ -221,6 +221,7 @@ export interface Order {
 }
 
 export const orders: Order[] = [
+  // Steven Lim (dealer-001) - Steady Steven - 6 recent orders
   {
     id: 'ORD-2026-0041',
     dealerId: 'dealer-001',
@@ -234,6 +235,68 @@ export const orders: Order[] = [
     deliveryOrderId: 'DO-2026-0041',
   },
   {
+    id: 'ORD-2026-0035',
+    dealerId: 'dealer-001',
+    items: [
+      { productId: 'prod-001', quantity: 8, unitPrice: 89.99 },
+      { productId: 'prod-005', quantity: 4, unitPrice: 18.99 },
+    ],
+    subtotal: 795.88,
+    status: 'delivered',
+    createdAt: '2026-01-01T09:15:00Z',
+    deliveryOrderId: 'DO-2026-0035',
+  },
+  {
+    id: 'ORD-2025-0198',
+    dealerId: 'dealer-001',
+    items: [
+      { productId: 'prod-001', quantity: 12, unitPrice: 89.99 },
+      { productId: 'prod-002', quantity: 6, unitPrice: 24.99 },
+      { productId: 'prod-006', quantity: 10, unitPrice: 12.99 },
+    ],
+    subtotal: 1359.72,
+    status: 'delivered',
+    createdAt: '2025-12-18T14:20:00Z',
+    deliveryOrderId: 'DO-2025-0198',
+  },
+  {
+    id: 'ORD-2025-0185',
+    dealerId: 'dealer-001',
+    items: [
+      { productId: 'prod-001', quantity: 10, unitPrice: 89.99 },
+    ],
+    subtotal: 899.90,
+    status: 'delivered',
+    createdAt: '2025-12-04T11:00:00Z',
+    deliveryOrderId: 'DO-2025-0185',
+  },
+  {
+    id: 'ORD-2025-0172',
+    dealerId: 'dealer-001',
+    items: [
+      { productId: 'prod-001', quantity: 10, unitPrice: 89.99 },
+      { productId: 'prod-002', quantity: 5, unitPrice: 24.99 },
+      { productId: 'prod-005', quantity: 3, unitPrice: 18.99 },
+    ],
+    subtotal: 1081.82,
+    status: 'delivered',
+    createdAt: '2025-11-20T08:45:00Z',
+    deliveryOrderId: 'DO-2025-0172',
+  },
+  {
+    id: 'ORD-2025-0159',
+    dealerId: 'dealer-001',
+    items: [
+      { productId: 'prod-001', quantity: 8, unitPrice: 89.99 },
+      { productId: 'prod-006', quantity: 5, unitPrice: 12.99 },
+    ],
+    subtotal: 784.87,
+    status: 'delivered',
+    createdAt: '2025-11-06T10:30:00Z',
+    deliveryOrderId: 'DO-2025-0159',
+  },
+  // Patricia Tan (dealer-002) - Project Patricia - 5 recent orders
+  {
     id: 'ORD-2026-0042',
     dealerId: 'dealer-002',
     items: [
@@ -246,6 +309,105 @@ export const orders: Order[] = [
     deliveryOrderId: 'DO-2026-0042',
   },
   {
+    id: 'ORD-2026-0038',
+    dealerId: 'dealer-002',
+    items: [
+      { productId: 'prod-001', quantity: 25, unitPrice: 89.99 },
+      { productId: 'prod-002', quantity: 15, unitPrice: 24.99 },
+      { productId: 'prod-004', quantity: 5, unitPrice: 79.99 },
+    ],
+    subtotal: 3024.55,
+    status: 'delivered',
+    createdAt: '2026-01-21T16:00:00Z',
+    deliveryOrderId: 'DO-2026-0038',
+  },
+  {
+    id: 'ORD-2026-0030',
+    dealerId: 'dealer-002',
+    items: [
+      { productId: 'prod-007', quantity: 30, unitPrice: 54.99 },
+      { productId: 'prod-008', quantity: 30, unitPrice: 19.99 },
+    ],
+    subtotal: 2249.40,
+    status: 'delivered',
+    createdAt: '2026-01-14T09:30:00Z',
+    deliveryOrderId: 'DO-2026-0030',
+  },
+  {
+    id: 'ORD-2026-0022',
+    dealerId: 'dealer-002',
+    items: [
+      { productId: 'prod-001', quantity: 20, unitPrice: 89.99 },
+      { productId: 'prod-002', quantity: 10, unitPrice: 24.99 },
+    ],
+    subtotal: 2049.70,
+    status: 'delivered',
+    createdAt: '2026-01-07T11:45:00Z',
+    deliveryOrderId: 'DO-2026-0022',
+  },
+  {
+    id: 'ORD-2025-0195',
+    dealerId: 'dealer-002',
+    items: [
+      { productId: 'prod-004', quantity: 10, unitPrice: 79.99 },
+      { productId: 'prod-003', quantity: 5, unitPrice: 45.99 },
+    ],
+    subtotal: 1029.85,
+    status: 'delivered',
+    createdAt: '2025-12-31T15:20:00Z',
+    deliveryOrderId: 'DO-2025-0195',
+  },
+  // Mike Chen (dealer-003) - Mobile Mike - 4 recent orders
+  {
+    id: 'ORD-2026-0025',
+    dealerId: 'dealer-003',
+    items: [
+      { productId: 'prod-003', quantity: 2, unitPrice: 45.99 },
+      { productId: 'prod-006', quantity: 5, unitPrice: 12.99 },
+    ],
+    subtotal: 156.93,
+    status: 'delivered',
+    createdAt: '2026-01-20T13:00:00Z',
+    deliveryOrderId: 'DO-2026-0025',
+  },
+  {
+    id: 'ORD-2025-0188',
+    dealerId: 'dealer-003',
+    items: [
+      { productId: 'prod-001', quantity: 3, unitPrice: 89.99 },
+      { productId: 'prod-002', quantity: 2, unitPrice: 24.99 },
+    ],
+    subtotal: 319.95,
+    status: 'delivered',
+    createdAt: '2025-12-28T10:30:00Z',
+    deliveryOrderId: 'DO-2025-0188',
+  },
+  {
+    id: 'ORD-2025-0175',
+    dealerId: 'dealer-003',
+    items: [
+      { productId: 'prod-003', quantity: 1, unitPrice: 45.99 },
+      { productId: 'prod-005', quantity: 2, unitPrice: 18.99 },
+      { productId: 'prod-006', quantity: 3, unitPrice: 12.99 },
+    ],
+    subtotal: 122.94,
+    status: 'delivered',
+    createdAt: '2025-12-07T14:15:00Z',
+    deliveryOrderId: 'DO-2025-0175',
+  },
+  {
+    id: 'ORD-2025-0162',
+    dealerId: 'dealer-003',
+    items: [
+      { productId: 'prod-001', quantity: 2, unitPrice: 89.99 },
+    ],
+    subtotal: 179.98,
+    status: 'delivered',
+    createdAt: '2025-11-16T09:00:00Z',
+    deliveryOrderId: 'DO-2025-0162',
+  },
+  // Victor Wong (dealer-004) - Volume Victor - 5 recent orders
+  {
     id: 'ORD-2026-0043',
     dealerId: 'dealer-004',
     items: [
@@ -255,6 +417,55 @@ export const orders: Order[] = [
     subtotal: 5249.20,
     status: 'processing',
     createdAt: '2026-01-30T09:00:00Z',
+  },
+  {
+    id: 'ORD-2026-0040',
+    dealerId: 'dealer-004',
+    items: [
+      { productId: 'prod-007', quantity: 100, unitPrice: 54.99 },
+      { productId: 'prod-008', quantity: 100, unitPrice: 19.99 },
+    ],
+    subtotal: 7498.00,
+    status: 'shipped',
+    createdAt: '2026-01-25T08:30:00Z',
+    deliveryOrderId: 'DO-2026-0040',
+  },
+  {
+    id: 'ORD-2026-0033',
+    dealerId: 'dealer-004',
+    items: [
+      { productId: 'prod-001', quantity: 40, unitPrice: 89.99 },
+      { productId: 'prod-002', quantity: 25, unitPrice: 24.99 },
+      { productId: 'prod-004', quantity: 10, unitPrice: 79.99 },
+    ],
+    subtotal: 4924.25,
+    status: 'delivered',
+    createdAt: '2026-01-20T10:15:00Z',
+    deliveryOrderId: 'DO-2026-0033',
+  },
+  {
+    id: 'ORD-2026-0028',
+    dealerId: 'dealer-004',
+    items: [
+      { productId: 'prod-007', quantity: 80, unitPrice: 54.99 },
+      { productId: 'prod-008', quantity: 80, unitPrice: 19.99 },
+    ],
+    subtotal: 5998.40,
+    status: 'delivered',
+    createdAt: '2026-01-15T14:00:00Z',
+    deliveryOrderId: 'DO-2026-0028',
+  },
+  {
+    id: 'ORD-2026-0020',
+    dealerId: 'dealer-004',
+    items: [
+      { productId: 'prod-001', quantity: 60, unitPrice: 89.99 },
+      { productId: 'prod-002', quantity: 40, unitPrice: 24.99 },
+    ],
+    subtotal: 6399.00,
+    status: 'delivered',
+    createdAt: '2026-01-10T11:30:00Z',
+    deliveryOrderId: 'DO-2026-0020',
   },
 ];
 

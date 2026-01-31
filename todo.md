@@ -98,3 +98,6 @@
 ### Demo Flow
 - [x] Test admin sends reminder → dealer receives notification
 - [x] Verify real-time update works across tabs
+
+## Bug Fixes
+- [x] Fix hardcoded order/item count in View Details modal - should use real data from orders

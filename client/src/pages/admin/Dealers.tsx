@@ -190,6 +190,9 @@ function DealerDetailsModal({ dealer, isOpen, onClose }: DealerDetailsModalProps
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
               Recent Orders
+              <span className="text-xs text-muted-foreground font-normal">
+                (Showing {Math.min(dealerOrders.length, 5)} of {dealer.orderCount} total orders)
+              </span>
             </h3>
             {dealerOrders.length > 0 ? (
               <div className="space-y-2">

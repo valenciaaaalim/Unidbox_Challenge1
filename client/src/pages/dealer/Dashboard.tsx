@@ -13,8 +13,9 @@ import {
   Clock,
   CheckCircle2,
 } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
-  currentDealer,
+  dealers,
   predictiveCart,
   products,
   orders,
@@ -28,8 +29,14 @@ import {
  */
 
 export default function DealerDashboard() {
-  const tierInfo = loyaltyTiers[currentDealer.tier];
-  const recentOrders = orders.filter((o) => o.dealerId === currentDealer.id).slice(0, 3);
+  const { user, isAuthenticated } = useAuth();
+  
+  // Use real logged-in user data, fallback to first mock dealer for demo stats
+  const mockDealer = dealers[0]; // For demo stats like orderCount, totalSpend
+  const userName = user?.name || mockDealer.name;
+  const userTier = (user?.dealerTier || mockDealer.tier) as keyof typeof loyaltyTiers;
+  const tierInfo = loyaltyTiers[userTier];
+  const recentOrders = orders.filter((o) => o.dealerId === mockDealer.id).slice(0, 3);
   const suggestedProducts = predictiveCart.suggestedItems.map((item) => ({
     ...item,
     product: products.find((p) => p.id === item.productId)!,
@@ -47,7 +54,7 @@ export default function DealerDashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">
-              Good morning, {currentDealer.name.split(" ")[0]}! 👋
+              Good morning, {userName.split(" ")[0]}! 👋
             </h1>
             <p className="text-muted-foreground mt-1">
               Here's what's happening with your orders today.
@@ -142,7 +149,7 @@ export default function DealerDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Orders</p>
-                  <p className="text-2xl font-bold">{currentDealer.orderCount}</p>
+                  <p className="text-2xl font-bold">{mockDealer.orderCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -156,7 +163,7 @@ export default function DealerDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Spend</p>
-                  <p className="text-2xl font-bold">${currentDealer.totalSpend.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">${mockDealer.totalSpend.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -170,7 +177,7 @@ export default function DealerDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Avg Order Value</p>
-                  <p className="text-2xl font-bold">${currentDealer.avgOrderValue.toFixed(0)}</p>
+                  <p className="text-2xl font-bold">${mockDealer.avgOrderValue.toFixed(0)}</p>
                 </div>
               </div>
             </CardContent>

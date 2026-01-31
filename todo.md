@@ -102,3 +102,5 @@
 ## Bug Fixes
 - [x] Fix hardcoded order/item count in View Details modal - should use real data from orders
 - [x] Fix hardcoded order count badge (12) in Admin sidebar - should show actual order count from data
+- [x] Fix New Chat button - should actually create a new conversation
+- [x] Fix user name placeholder (#PANG HAOYANG#) - should show actual dealer name

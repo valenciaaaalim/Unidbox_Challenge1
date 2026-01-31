@@ -75,6 +75,15 @@ export default function DealerChat() {
     },
   });
 
+  // Create a brand new session
+  const newSessionMutation = trpc.chat.createNewSession.useMutation({
+    onSuccess: (session) => {
+      setSessionId(session.sessionId);
+      setMessages([]);
+      utils.chat.getSessions.invalidate();
+    },
+  });
+
   // Get chat sessions for history
   const { data: chatSessions } = trpc.chat.getSessions.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -208,10 +217,8 @@ export default function DealerChat() {
 
   // Create new session
   const handleNewSession = () => {
-    setMessages([]);
-    setSessionId(null);
-    sessionMutation.mutate();
     setShowHistory(false);
+    newSessionMutation.mutate();
   };
 
   // Load a previous session

@@ -102,3 +102,8 @@
 ## Bug Fixes
 - [x] Fix hardcoded order/item count in View Details modal - should use real data from orders
 - [x] Fix hardcoded order count badge (12) in Admin sidebar - should show actual order count from data
+- [x] Fix New Chat button - should actually create a new conversation
+- [x] Fix user name placeholder (#PANG HAOYANG#) - should show actual dealer name
+- [x] Fix user name inconsistency - Dashboard shows "Steven" (mock) but Chat shows actual logged-in user name
+- [x] Ensure order history is linked to real logged-in users, not mock dealers
+- [x] Fix TypeError: tierInfo undefined when user dealerTier is null

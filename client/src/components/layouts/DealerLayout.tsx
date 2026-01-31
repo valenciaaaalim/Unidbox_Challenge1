@@ -21,7 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { currentDealer, loyaltyTiers } from "@/lib/mockData";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { dealers, loyaltyTiers } from "@/lib/mockData";
 import { trpc } from "@/lib/trpc";
 import { formatDistanceToNow } from "date-fns";
 
@@ -202,7 +203,15 @@ function NotificationDropdown() {
 export default function DealerLayout({ children }: DealerLayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const tierInfo = loyaltyTiers[currentDealer.tier];
+  const { user } = useAuth();
+  
+  // Use real logged-in user data, fallback to first mock dealer
+  const mockDealer = dealers[0];
+  const userName = user?.name || mockDealer.name;
+  const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  // Ensure userTier is a valid key, default to 'silver' if null/undefined
+  const userTier = (user?.dealerTier || mockDealer.tier || 'silver') as keyof typeof loyaltyTiers;
+  const tierInfo = loyaltyTiers[userTier] || loyaltyTiers.silver;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -259,11 +268,11 @@ export default function DealerLayout({ children }: DealerLayoutProps) {
           <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
             <Avatar className="w-10 h-10">
               <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                {currentDealer.avatar}
+                {userInitials}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{currentDealer.name}</p>
+              <p className="font-medium text-sm truncate">{userName}</p>
               <div className="flex items-center gap-1.5">
                 <div
                   className="w-2 h-2 rounded-full"

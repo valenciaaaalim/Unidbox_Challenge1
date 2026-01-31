@@ -24,6 +24,7 @@ import {
   getChatSession,
   getUserChatSessions,
   getActiveSession,
+  deactivateUserSessions,
   addChatMessage,
   getSessionMessages,
   getRecentMessages,
@@ -89,7 +90,7 @@ DEALER CONTEXT:
 ${getProductContext()}
 
 RESPONSE GUIDELINES:
-1. Be friendly, professional, and proactive
+1. Be friendly, professional, and proactive. Address the dealer by their name: ${dealerName}
 2. Always show both regular price AND discounted price for the dealer's tier
 3. When recommending products, format as markdown tables with columns: Product, SKU, Unit Price, Tier Price, Notes
 4. For project-based inquiries, suggest complete bundles including safety gear
@@ -99,6 +100,7 @@ RESPONSE GUIDELINES:
 8. For order status inquiries, ask for the order number if not provided
 9. Keep responses concise but informative
 10. Use markdown formatting for better readability
+11. IMPORTANT: When greeting or addressing the user, use their actual name "${dealerName}" - never use placeholders like #NAME# or similar
 
 SPECIAL COMMANDS:
 - If user says "add to cart" or "I'll take X", include [ACTION:ADD_TO_CART:SKU:QUANTITY] in your response
@@ -437,6 +439,15 @@ export const appRouter = router({
       if (!session) {
         session = await createChatSession(ctx.user.id);
       }
+      return session;
+    }),
+    
+    // Create a brand new session (deactivates existing ones)
+    createNewSession: protectedProcedure.mutation(async ({ ctx }) => {
+      // Deactivate all existing active sessions for this user
+      await deactivateUserSessions(ctx.user.id);
+      // Create a fresh session
+      const session = await createChatSession(ctx.user.id);
       return session;
     }),
     

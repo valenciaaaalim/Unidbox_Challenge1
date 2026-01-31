@@ -345,6 +345,15 @@ export async function updateChatSessionSummary(sessionId: string, summary: strin
   await db.update(chatSessions).set({ summary }).where(eq(chatSessions.sessionId, sessionId));
 }
 
+export async function deactivateUserSessions(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(chatSessions)
+    .set({ isActive: 0 })
+    .where(and(eq(chatSessions.userId, userId), eq(chatSessions.isActive, 1)));
+}
+
 // ============ CHAT MESSAGE HELPERS ============
 
 export async function addChatMessage(message: InsertChatMessage): Promise<ChatMessage> {

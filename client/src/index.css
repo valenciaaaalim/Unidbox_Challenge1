@@ -3,19 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* 
- * UnidBox AI Sales Agent - Design System
- * Theme: "Intelligent Commerce" - Premium SaaS Elegance
- * 
- * Color Philosophy:
- * - Primary: Deep Indigo (#4338CA) - Intelligence and depth
- * - Background: Warm White (#FAFAF9) - Approachable professionalism
- * - Accent: Coral (#F97316) - Warmth and urgency
- * - AI Indicator: Violet (#8B5CF6) - Innovation and intelligence
- * 
- * Typography: Plus Jakarta Sans
- */
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -54,85 +41,87 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   
-  /* Custom colors for UnidBox */
-  --color-coral: oklch(0.7 0.18 30);
-  --color-violet: oklch(0.6 0.2 280);
-  --color-emerald: oklch(0.7 0.17 160);
-  --color-amber: oklch(0.75 0.15 75);
+  /* Custom lifecycle colors */
+  --color-lifecycle-active: oklch(0.723 0.219 142.136);
+  --color-lifecycle-maintenance: oklch(0.795 0.184 86.047);
+  --color-lifecycle-approaching: oklch(0.705 0.213 47.604);
+  --color-lifecycle-reorder: oklch(0.637 0.237 25.331);
   
   /* Font family */
-  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --primary: oklch(0.45 0.2 265);
-  --primary-foreground: oklch(0.98 0.01 265);
-  --sidebar-primary: oklch(0.5 0.2 265);
-  --sidebar-primary-foreground: oklch(0.98 0.01 265);
-  --chart-1: oklch(0.7 0.18 30);
-  --chart-2: oklch(0.6 0.2 280);
-  --chart-3: oklch(0.7 0.17 160);
-  --chart-4: oklch(0.45 0.2 265);
-  --chart-5: oklch(0.75 0.15 75);
-  --radius: 0.75rem;
-  --background: oklch(0.99 0.002 80);
-  --foreground: oklch(0.15 0.02 60);
+  /* Unidbox Orange Theme - #FF8C42 converted to OKLCH */
+  --primary: oklch(0.73 0.15 45);
+  --primary-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(0.73 0.15 45);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --chart-1: oklch(0.85 0.10 45);
+  --chart-2: oklch(0.73 0.15 45);
+  --chart-3: oklch(0.65 0.18 45);
+  --chart-4: oklch(0.55 0.20 45);
+  --chart-5: oklch(0.45 0.22 45);
+  --radius: 0.65rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.235 0.015 65);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 60);
+  --card-foreground: oklch(0.235 0.015 65);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 60);
-  --secondary: oklch(0.96 0.005 265);
-  --secondary-foreground: oklch(0.35 0.05 265);
-  --muted: oklch(0.95 0.005 80);
-  --muted-foreground: oklch(0.5 0.02 60);
-  --accent: oklch(0.7 0.18 30);
-  --accent-foreground: oklch(0.98 0.01 30);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.92 0.005 80);
-  --input: oklch(0.92 0.005 80);
-  --ring: oklch(0.45 0.2 265);
-  --sidebar: oklch(0.98 0.005 265);
-  --sidebar-foreground: oklch(0.15 0.02 60);
-  --sidebar-accent: oklch(0.94 0.02 265);
-  --sidebar-accent-foreground: oklch(0.15 0.02 60);
-  --sidebar-border: oklch(0.92 0.01 265);
-  --sidebar-ring: oklch(0.45 0.2 265);
+  --popover-foreground: oklch(0.235 0.015 65);
+  --secondary: oklch(0.98 0.001 286.375);
+  --secondary-foreground: oklch(0.4 0.015 65);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.141 0.005 285.823);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.73 0.15 45);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.235 0.015 65);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.73 0.15 45);
 }
 
 .dark {
-  --primary: oklch(0.6 0.2 265);
-  --primary-foreground: oklch(0.98 0.01 265);
-  --sidebar-primary: oklch(0.6 0.2 265);
-  --sidebar-primary-foreground: oklch(0.98 0.01 265);
-  --background: oklch(0.12 0.02 265);
-  --foreground: oklch(0.92 0.01 80);
-  --card: oklch(0.16 0.02 265);
-  --card-foreground: oklch(0.92 0.01 80);
-  --popover: oklch(0.16 0.02 265);
-  --popover-foreground: oklch(0.92 0.01 80);
-  --secondary: oklch(0.22 0.03 265);
-  --secondary-foreground: oklch(0.85 0.02 265);
-  --muted: oklch(0.25 0.02 265);
-  --muted-foreground: oklch(0.65 0.02 265);
-  --accent: oklch(0.7 0.18 30);
-  --accent-foreground: oklch(0.98 0.01 30);
-  --destructive: oklch(0.65 0.2 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.25 0.02 265);
-  --input: oklch(0.25 0.02 265);
-  --ring: oklch(0.6 0.2 265);
-  --chart-1: oklch(0.7 0.18 30);
-  --chart-2: oklch(0.6 0.2 280);
-  --chart-3: oklch(0.7 0.17 160);
-  --chart-4: oklch(0.6 0.2 265);
-  --chart-5: oklch(0.75 0.15 75);
-  --sidebar: oklch(0.14 0.02 265);
-  --sidebar-foreground: oklch(0.92 0.01 80);
-  --sidebar-accent: oklch(0.22 0.03 265);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.25 0.02 265);
-  --sidebar-ring: oklch(0.6 0.2 265);
+  /* Unidbox Orange Theme - Dark Mode */
+  --primary: oklch(0.73 0.15 45);
+  --primary-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(0.73 0.15 45);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.85 0.005 65);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.85 0.005 65);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.85 0.005 65);
+  --secondary: oklch(0.24 0.006 286.033);
+  --secondary-foreground: oklch(0.7 0.005 65);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.92 0.005 65);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.73 0.15 45);
+  --chart-1: oklch(0.85 0.10 45);
+  --chart-2: oklch(0.73 0.15 45);
+  --chart-3: oklch(0.65 0.18 45);
+  --chart-4: oklch(0.55 0.20 45);
+  --chart-5: oklch(0.45 0.22 45);
+  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: oklch(0.85 0.005 65);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.73 0.15 45);
 }
 
 @layer base {
@@ -140,7 +129,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -183,68 +173,57 @@
       max-width: 1280px;
     }
   }
-
-  /* Glassmorphism effect for AI panels */
-  .glass {
-    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-lg;
+  
+  /* Lifecycle status colors */
+  .lifecycle-active {
+    @apply bg-emerald-100 text-emerald-700 border-emerald-200;
   }
-
-  .glass-dark {
-    @apply bg-black/40 backdrop-blur-xl border border-white/10 shadow-lg;
+  
+  .lifecycle-maintenance {
+    @apply bg-amber-100 text-amber-700 border-amber-200;
   }
-
-  /* AI indicator glow */
-  .ai-glow {
-    box-shadow: 0 0 20px oklch(0.6 0.2 280 / 0.3), 0 0 40px oklch(0.6 0.2 280 / 0.1);
+  
+  .lifecycle-approaching {
+    @apply bg-orange-100 text-orange-700 border-orange-200;
   }
-
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+  
+  .lifecycle-reorder {
+    @apply bg-rose-100 text-rose-700 border-rose-200;
   }
-
-  /* Gradient text for headings */
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet;
+  
+  /* Progress bar variants */
+  .progress-active {
+    @apply bg-emerald-500;
   }
-
-  /* Card hover effect */
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  
+  .progress-maintenance {
+    @apply bg-amber-500;
   }
-
-  /* Status indicators */
-  .status-dot {
-    @apply w-2 h-2 rounded-full animate-pulse;
+  
+  .progress-approaching {
+    @apply bg-orange-500;
   }
-
-  .status-success {
-    background-color: oklch(0.7 0.17 160);
-  }
-
-  .status-warning {
-    background-color: oklch(0.75 0.15 75);
-  }
-
-  .status-ai {
-    background-color: oklch(0.6 0.2 280);
-    box-shadow: 0 0 20px oklch(0.6 0.2 280 / 0.3), 0 0 40px oklch(0.6 0.2 280 / 0.1);
+  
+  .progress-reorder {
+    @apply bg-rose-500;
   }
 }
 
-@layer utilities {
-  /* Custom animations */
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px oklch(0.6 0.2 280 / 0.3); }
-    50% { box-shadow: 0 0 30px oklch(0.6 0.2 280 / 0.5); }
-  }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
+::-webkit-scrollbar-thumb {
+  background: oklch(0.8 0 0);
+  border-radius: 4px;
+}
 
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.7 0 0);
 }

@@ -1,264 +1,262 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import {
+  BarChart3,
+  Bell,
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  MessageSquare,
+  Package,
+  Search,
+  Settings,
+  ShoppingCart,
+  Star,
+  Truck,
+  Users,
+} from "lucide-react";
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar";
-import { getLoginUrl } from "@/const";
-import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
-import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
-import { Button } from "./ui/button";
+} from "./ui/dropdown-menu";
+import { NotificationPanel } from "./NotificationPanel";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
-];
-
-const SIDEBAR_WIDTH_KEY = "sidebar-width";
-const DEFAULT_WIDTH = 280;
-const MIN_WIDTH = 200;
-const MAX_WIDTH = 480;
-
-export default function DashboardLayout({
-  children,
-}: {
+interface DashboardLayoutProps {
   children: React.ReactNode;
-}) {
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
-  });
-  const { loading, user } = useAuth();
-
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
-  }, [sidebarWidth]);
-
-  if (loading) {
-    return <DashboardLayoutSkeleton />
-  }
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
-          <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-center">
-              Sign in to continue
-            </h1>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              window.location.href = getLoginUrl();
-            }}
-            size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
-          >
-            Sign in
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": `${sidebarWidth}px`,
-        } as CSSProperties
-      }
-    >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
-        {children}
-      </DashboardLayoutContent>
-    </SidebarProvider>
-  );
+  isAdmin?: boolean;
 }
 
-type DashboardLayoutContentProps = {
-  children: React.ReactNode;
-  setSidebarWidth: (width: number) => void;
-};
+const dealerNavigation = [
+  { name: "Dashboard", href: "/dealer", icon: LayoutDashboard },
+  { name: "AI Agent", href: "/dealer/chat", icon: MessageSquare },
+  { name: "Catalog", href: "/dealer/catalog", icon: Search },
+  { name: "Cart", href: "/dealer/cart", icon: ShoppingCart },
+  { name: "Orders", href: "/dealer/orders", icon: Truck },
+  { name: "My Products", href: "/dealer/lifecycle", icon: Package, badge: "New" },
+  { name: "Loyalty", href: "/dealer/loyalty", icon: Star },
+];
 
-function DashboardLayoutContent({
-  children,
-  setSidebarWidth,
-}: DashboardLayoutContentProps) {
-  const { user, logout } = useAuth();
-  const [location, setLocation] = useLocation();
-  const { state, toggleSidebar } = useSidebar();
-  const isCollapsed = state === "collapsed";
-  const [isResizing, setIsResizing] = useState(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
-  const isMobile = useIsMobile();
+const adminNavigation = [
+  { name: "Analytics", href: "/admin", icon: BarChart3 },
+  { name: "Lifecycle Insights", href: "/admin/lifecycle", icon: Package },
+  { name: "Dealers", href: "/admin/dealers", icon: Users },
+  { name: "Engagement Queue", href: "/admin/engagement", icon: MessageSquare },
+  { name: "Settings", href: "/admin/settings", icon: Settings },
+];
 
-  useEffect(() => {
-    if (isCollapsed) {
-      setIsResizing(false);
-    }
-  }, [isCollapsed]);
+export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutProps) {
+  const [location] = useLocation();
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-
-      const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
-      const newWidth = e.clientX - sidebarLeft;
-      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
-        setSidebarWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, [isResizing, setSidebarWidth]);
+  const navigation = isAdmin ? adminNavigation : dealerNavigation;
+  const baseHref = isAdmin ? "/admin" : "/dealer";
 
   return (
-    <>
-      <div className="relative" ref={sidebarRef}>
-        <Sidebar
-          collapsible="icon"
-          className="border-r-0"
-          disableTransition={isResizing}
-        >
-          <SidebarHeader className="h-16 justify-center">
-            <div className="flex items-center gap-3 px-2 transition-all w-full">
-              <button
-                onClick={toggleSidebar}
-                className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-                aria-label="Toggle navigation"
-              >
-                <PanelLeft className="h-4 w-4 text-muted-foreground" />
-              </button>
-              {!isCollapsed ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Navigation
-                  </span>
-                </div>
-              ) : null}
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar - Customer Portal Style */}
+      <aside className={cn(
+        "w-60 border-r border-border flex flex-col fixed h-screen",
+        isAdmin ? "bg-slate-900" : "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      )}>
+        {/* Logo - Matching Customer Portal */}
+        <div className={cn(
+          "h-16 flex items-center px-4 border-b",
+          isAdmin ? "border-slate-700" : "border-border"
+        )}>
+          <Link href={baseHref} className="flex items-center gap-2">
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center",
+              isAdmin ? "bg-indigo-600" : "bg-primary"
+            )}>
+              <span className="text-primary-foreground font-bold text-lg">U</span>
             </div>
-          </SidebarHeader>
+            <div>
+              <h1 className={cn(
+                "font-bold text-xl",
+                isAdmin ? "text-white" : "text-foreground"
+              )}>UNiDBox</h1>
+              <p className={cn(
+                "text-xs",
+                isAdmin ? "text-slate-400" : "text-muted-foreground"
+              )}>
+                {isAdmin ? "Admin Portal" : "Dealer Portal"}
+              </p>
+            </div>
+          </Link>
+        </div>
 
-          <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarContent>
+        {/* Portal Switcher */}
+        <div className={cn(
+          "px-4 py-3 border-b",
+          isAdmin ? "border-slate-700" : "border-border"
+        )}>
+          <Link href={isAdmin ? "/dealer" : "/admin"}>
+            <Button 
+              variant="outline" 
+              className={cn(
+                "w-full justify-start gap-2",
+                isAdmin 
+                  ? "border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white" 
+                  : "hover:bg-primary/10 hover:text-primary hover:border-primary"
+              )}
+            >
+              {isAdmin ? (
+                <>
+                  <ShoppingCart className="w-4 h-4" />
+                  Switch to Dealer View
+                </>
+              ) : (
+                <>
+                  <BarChart3 className="w-4 h-4" />
+                  Switch to Admin View
+                </>
+              )}
+            </Button>
+          </Link>
+        </div>
 
-          <SidebarFooter className="p-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-9 w-9 border shrink-0">
-                    <AvatarFallback className="text-xs font-medium">
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate leading-none">
-                      {user?.name || "-"}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate mt-1.5">
-                      {user?.email || "-"}
-                    </p>
-                  </div>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="cursor-pointer text-destructive focus:text-destructive"
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1">
+          {navigation.map((item) => {
+            const isActive = location === item.href || 
+              (item.href !== baseHref && location.startsWith(item.href));
+            return (
+              <Link key={item.name} href={item.href}>
+                <div
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? isAdmin 
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-primary text-primary-foreground shadow-sm"
+                      : isAdmin
+                        ? "text-slate-400 hover:bg-slate-800 hover:text-white"
+                        : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                  )}
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarFooter>
-        </Sidebar>
-        <div
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
-          onMouseDown={() => {
-            if (isCollapsed) return;
-            setIsResizing(true);
-          }}
-          style={{ zIndex: 50 }}
-        />
-      </div>
-
-      <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="tracking-tight text-foreground">
-                    {activeMenuItem?.label ?? "Menu"}
-                  </span>
+                  <item.icon className={cn(
+                    "w-5 h-5",
+                    isActive ? "" : isAdmin ? "" : "text-muted-foreground"
+                  )} />
+                  {item.name}
+                  {"badge" in item && (item as { badge?: string }).badge && (
+                    <Badge variant="secondary" className="ml-auto text-xs bg-primary/10 text-primary border-0">
+                      {(item as { badge?: string }).badge}
+                    </Badge>
+                  )}
                 </div>
-              </div>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User Profile */}
+        <div className={cn(
+          "p-4 border-t",
+          isAdmin ? "border-slate-700" : "border-border"
+        )}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "w-full flex items-center gap-3 p-2 rounded-lg transition-colors",
+                isAdmin ? "hover:bg-slate-800" : "hover:bg-accent"
+              )}>
+                <Avatar className="w-9 h-9 border">
+                  <AvatarFallback className={cn(
+                    "font-medium text-sm",
+                    isAdmin ? "bg-indigo-600 text-white" : "bg-primary text-primary-foreground"
+                  )}>
+                    {isAdmin ? "AD" : "SL"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left min-w-0">
+                  <p className={cn(
+                    "text-sm font-medium truncate leading-none",
+                    isAdmin ? "text-white" : "text-foreground"
+                  )}>
+                    {isAdmin ? "Admin User" : "Steven Lim"}
+                  </p>
+                  <p className={cn(
+                    "text-xs truncate mt-1.5 flex items-center gap-1",
+                    isAdmin ? "text-indigo-400" : "text-primary"
+                  )}>
+                    <span className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      isAdmin ? "bg-indigo-400" : "bg-primary"
+                    )} />
+                    {isAdmin ? "Administrator" : "Gold Tier"}
+                  </p>
+                </div>
+                <ChevronDown className={cn(
+                  "w-4 h-4",
+                  isAdmin ? "text-slate-400" : "text-muted-foreground"
+                )} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem>
+                <span>Profile Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <span>Notification Preferences</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive">
+                <LogOut className="w-4 h-4 mr-2" />
+                <span>Sign Out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 ml-60">
+        {/* Top Header - Customer Portal Style */}
+        <header className={cn(
+          "h-16 border-b sticky top-0 z-40 flex items-center justify-between px-6",
+          "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        )}>
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-semibold text-foreground">
+              {navigation.find((n) => 
+                location === n.href || (n.href !== baseHref && location.startsWith(n.href))
+              )?.name || (isAdmin ? "Analytics" : "Dashboard")}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hover:bg-primary/10"
+                onClick={() => setNotificationOpen(!notificationOpen)}
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                  {isAdmin ? "5" : "3"}
+                </span>
+              </Button>
+              
+              {notificationOpen && (
+                <NotificationPanel onClose={() => setNotificationOpen(false)} isAdmin={isAdmin} />
+              )}
             </div>
           </div>
-        )}
-        <main className="flex-1 p-4">{children}</main>
-      </SidebarInset>
-    </>
+        </header>
+
+        {/* Page Content */}
+        <div className="p-6">{children}</div>
+      </main>
+    </div>
   );
 }

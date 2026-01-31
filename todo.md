@@ -101,3 +101,4 @@
 
 ## Bug Fixes
 - [x] Fix hardcoded order/item count in View Details modal - should use real data from orders
+- [x] Fix hardcoded order count badge (12) in Admin sidebar - should show actual order count from data

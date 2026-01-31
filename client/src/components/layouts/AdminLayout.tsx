@@ -16,7 +16,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { adminMetrics } from "@/lib/mockData";
+import { adminMetrics, orders } from "@/lib/mockData";
 
 /*
  * AdminLayout - Sidebar navigation for Admin Console
@@ -25,7 +25,7 @@ import { adminMetrics } from "@/lib/mockData";
 
 const navItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/admin/orders", label: "Orders", icon: ClipboardList, badge: adminMetrics.today.orders },
+  { path: "/admin/orders", label: "Orders", icon: ClipboardList, badge: orders.length },
   { path: "/admin/dealers", label: "Dealers", icon: Users, alert: adminMetrics.atRiskDealers.length > 0 },
   { path: "/admin/agents", label: "AI Agents", icon: Bot },
   { path: "/admin/analytics", label: "Analytics", icon: BarChart3 },

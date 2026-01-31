@@ -8,6 +8,13 @@
       "when": 1769832642917,
       "tag": "0000_daffy_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1769833419560,
+      "tag": "0001_narrow_rockslide",
+      "breakpoints": true
     }
   ]
 }

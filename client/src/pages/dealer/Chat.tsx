@@ -1,10 +1,13 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import DealerLayout from "@/components/layouts/DealerLayout";
 import { AIChatBox, Message } from "@/components/AIChatBox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
 import {
   Bot,
   Sparkles,
@@ -13,48 +16,25 @@ import {
   TrendingUp,
   FileText,
   HelpCircle,
+  CheckCircle,
+  Loader2,
+  History,
+  Plus,
 } from "lucide-react";
 
 /*
  * Dealer Chat - AI Sales Agent Chatbot
  * Design: Premium SaaS Elegance
- * Features: AI-powered chat for product inquiries, orders, and support
+ * Features: AI-powered chat with Add to Cart, Order Placement, and Chat History
  */
-
-const SYSTEM_PROMPT = `You are UnidBox AI Sales Agent, a helpful and knowledgeable assistant for wholesale dealers. You help dealers with:
-
-1. **Product Inquiries**: Answer questions about products, pricing, specifications, and availability
-2. **Order Assistance**: Help place orders, suggest quantities, and recommend related products
-3. **Order Status**: Check on existing orders and delivery status
-4. **Recommendations**: Suggest products based on purchase history and current needs
-5. **Marketing Support**: Generate social media posts and promotional content for products
-
-Available Products (use this for pricing/availability questions):
-- CAT6 Ethernet Cable 100m (CBL-CAT6-100): $89.99/roll - In Stock
-- RJ45 Connectors 100 pack (CON-RJ45-100): $24.99/pack - In Stock
-- Professional Crimping Tool (TLS-CRIMP-01): $45.99/piece - In Stock
-- Cable Tester Pro (TLS-TESTER-01): $79.99/piece - Low Stock (5 left)
-- Insulated Work Gloves L (SAF-GLOVES-L): $18.99/pair - In Stock
-- Safety Glasses Clear (SAF-GLASSES-01): $12.99/piece - In Stock
-- LED Panel Light 60x60cm (LGT-LED-PANEL): $54.99/piece - In Stock
-- LED Driver 40W (LGT-DRIVER-40W): $19.99/piece - In Stock
-
-Cross-sell recommendations:
-- CAT6 cables → RJ45 connectors, crimping tool, cable tester
-- LED panels → LED drivers (always recommend together)
-- Tools → Safety gloves and glasses
-
-Current dealer: Steven Lim (Gold Tier - 5% volume rebate)
-Recent orders: ORD-2026-0041 (Delivered), ORD-2026-0038 (Delivered)
-
-Be friendly, professional, and proactive in suggesting relevant products. Always mention applicable discounts for Gold tier dealers. When helping with orders, confirm quantities and calculate totals.`;
 
 const suggestedPrompts = [
   "What's the price for CAT6 cables?",
   "I need to restock my usual items",
   "Recommend products for a cabling project",
+  "Add 5 CAT6 cables to my cart",
+  "Place my order",
   "Check my order status",
-  "Generate a social post for LED panels",
 ];
 
 const capabilities = [
@@ -66,7 +46,7 @@ const capabilities = [
   {
     icon: ShoppingCart,
     title: "Quick Orders",
-    description: "Place orders conversationally",
+    description: "Add to cart & checkout via chat",
   },
   {
     icon: TrendingUp,
@@ -81,12 +61,114 @@ const capabilities = [
 ];
 
 export default function DealerChat() {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "system", content: SYSTEM_PROMPT },
-  ]);
+  const { user, isAuthenticated } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
+  const utils = trpc.useUtils();
+
+  // Get or create chat session
+  const sessionMutation = trpc.chat.getOrCreateSession.useMutation({
+    onSuccess: (session) => {
+      setSessionId(session.sessionId);
+    },
+  });
+
+  // Get chat sessions for history
+  const { data: chatSessions } = trpc.chat.getSessions.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  // Get messages for current session
+  const { data: sessionMessages } = trpc.chat.getMessages.useQuery(
+    { sessionId: sessionId || "" },
+    { enabled: !!sessionId && isAuthenticated }
+  );
+
+  // Load session messages when available
+  useEffect(() => {
+    if (sessionMessages && sessionMessages.length > 0) {
+      const loadedMessages: Message[] = sessionMessages.map((msg) => ({
+        role: msg.role as "user" | "assistant" | "system",
+        content: msg.content,
+      }));
+      setMessages(loadedMessages);
+    }
+  }, [sessionMessages]);
+
+  // Initialize session on mount
+  useEffect(() => {
+    if (isAuthenticated && !sessionId) {
+      sessionMutation.mutate();
+    }
+  }, [isAuthenticated]);
+
+  // Cart mutation
+  const addToCartMutation = trpc.cart.add.useMutation({
+    onSuccess: (result) => {
+      toast.success(result.message, {
+        icon: <CheckCircle className="w-4 h-4 text-emerald-500" />,
+      });
+      utils.cart.get.invalidate();
+    },
+    onError: (error) => {
+      toast.error(`Failed to add to cart: ${error.message}`);
+    },
+  });
+
+  // Order mutation
+  const createOrderMutation = trpc.orders.create.useMutation({
+    onSuccess: (result) => {
+      toast.success(result.message, {
+        icon: <CheckCircle className="w-4 h-4 text-emerald-500" />,
+        duration: 5000,
+      });
+      utils.cart.get.invalidate();
+      utils.orders.list.invalidate();
+      
+      // Add confirmation message to chat
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `🎉 **Order Confirmed!**\n\n**Order Number:** ${result.order.orderNumber}\n**Delivery Order:** ${result.deliveryOrder.doNumber}\n**Total:** $${result.order.total}\n\nYour order has been confirmed and the Delivery Order has been generated. You can track your order in the Orders section.`,
+        },
+      ]);
+    },
+    onError: (error) => {
+      toast.error(`Failed to place order: ${error.message}`);
+    },
+  });
+
+  // Get cart for order placement
+  const { data: cartData } = trpc.cart.get.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  // Chat mutation
   const chatMutation = trpc.chat.send.useMutation({
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
+      // Process actions from AI response
+      if (response.actions && response.actions.length > 0) {
+        for (const action of response.actions) {
+          if (action.type === "ADD_TO_CART" && action.sku && action.quantity) {
+            // Execute add to cart
+            addToCartMutation.mutate({
+              sku: action.sku,
+              quantity: action.quantity,
+            });
+          } else if (action.type === "PLACE_ORDER") {
+            // Check if cart has items
+            if (cartData && cartData.items.length > 0) {
+              createOrderMutation.mutate({});
+            } else {
+              toast.error("Your cart is empty. Add items before placing an order.");
+            }
+          }
+        }
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -108,14 +190,37 @@ export default function DealerChat() {
     },
   });
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = useCallback((content: string) => {
     const newMessages: Message[] = [
       ...messages,
       { role: "user", content },
     ];
     setMessages(newMessages);
-    chatMutation.mutate({ messages: newMessages });
+    
+    chatMutation.mutate({
+      messages: newMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      sessionId: sessionId || undefined,
+    });
+  }, [messages, sessionId, chatMutation]);
+
+  // Create new session
+  const handleNewSession = () => {
+    setMessages([]);
+    setSessionId(null);
+    sessionMutation.mutate();
+    setShowHistory(false);
   };
+
+  // Load a previous session
+  const handleLoadSession = (id: string) => {
+    setSessionId(id);
+    setShowHistory(false);
+  };
+
+  const isProcessing = chatMutation.isPending || addToCartMutation.isPending || createOrderMutation.isPending;
 
   return (
     <DealerLayout>
@@ -136,14 +241,74 @@ export default function DealerChat() {
                   Your intelligent assistant for ordering, inquiries, and support.
                 </p>
               </div>
-              <Badge
-                variant="outline"
-                className="bg-emerald-500/10 text-emerald-600 border-emerald-200"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
-                Online
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="gap-2"
+                >
+                  <History className="w-4 h-4" />
+                  History
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNewSession}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Chat
+                </Button>
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-500/10 text-emerald-600 border-emerald-200"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
+                  Online
+                </Badge>
+              </div>
             </div>
+
+            {/* Chat History Panel */}
+            <AnimatePresence>
+              {showHistory && chatSessions && chatSessions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">Previous Conversations</CardTitle>
+                    </CardHeader>
+                    <CardContent className="max-h-48 overflow-y-auto">
+                      <div className="space-y-2">
+                        {chatSessions.map((session) => (
+                          <button
+                            key={session.sessionId}
+                            onClick={() => handleLoadSession(session.sessionId)}
+                            className={`w-full text-left p-3 rounded-lg transition-colors ${
+                              sessionId === session.sessionId
+                                ? "bg-primary/10 border border-primary/20"
+                                : "bg-muted/50 hover:bg-muted"
+                            }`}
+                          >
+                            <p className="font-medium text-sm truncate">
+                              {session.title || "Untitled Chat"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(session.updatedAt).toLocaleDateString()}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Chat Box */}
             <motion.div
@@ -154,18 +319,65 @@ export default function DealerChat() {
               <AIChatBox
                 messages={messages}
                 onSendMessage={handleSendMessage}
-                isLoading={chatMutation.isPending}
-                placeholder="Ask about products, place orders, or get recommendations..."
-                height="calc(100vh - 280px)"
-                emptyStateMessage="Hi Steven! I'm your AI Sales Agent. How can I help you today?"
+                isLoading={isProcessing}
+                placeholder="Ask about products, add to cart, or place an order..."
+                height="calc(100vh - 320px)"
+                emptyStateMessage={`Hi ${user?.name || "there"}! I'm your AI Sales Agent. How can I help you today?`}
                 suggestedPrompts={suggestedPrompts}
                 className="shadow-lg"
               />
             </motion.div>
+
+            {/* Action Status */}
+            <AnimatePresence>
+              {(addToCartMutation.isPending || createOrderMutation.isPending) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {addToCartMutation.isPending && "Adding to cart..."}
+                  {createOrderMutation.isPending && "Processing your order..."}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Sidebar - Capabilities */}
           <div className="space-y-6">
+            {/* Cart Summary */}
+            {isAuthenticated && cartData && cartData.items.length > 0 && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-primary" />
+                    Your Cart
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {cartData.items.length} item(s)
+                      </span>
+                      <span className="font-semibold">${cartData.total.toFixed(2)}</span>
+                    </div>
+                    {cartData.discount > 0 && (
+                      <div className="flex justify-between text-xs text-emerald-600">
+                        <span>Tier Discount ({cartData.tierDiscount}%)</span>
+                        <span>-${cartData.discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Say "place my order" to checkout
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* AI Capabilities */}
             <Card>
               <CardHeader className="pb-3">
@@ -209,15 +421,15 @@ export default function DealerChat() {
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <span className="text-primary">•</span>
-                    Ask "restock my usual items" for quick reorders
+                    Say "add 5 CAT6 cables to cart" to add items
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-primary">•</span>
-                    Mention project type for tailored recommendations
+                    Say "place my order" to checkout
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-primary">•</span>
-                    Request marketing content for any product
+                    Your chat history is saved automatically
                   </li>
                 </ul>
               </CardContent>

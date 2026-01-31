@@ -57,3 +57,18 @@
 - [x] Add chat history tRPC routes (save, load, list)
 - [x] Update Chat page to load/save history
 - [x] Add conversation resume functionality
+
+## Admin Orders Enhancements
+
+### View Order Details Modal
+- [x] Create order details modal component
+- [x] Show order items, quantities, and pricing
+- [x] Show dealer information
+- [x] Show order status timeline
+- [x] Wire up eye icon to open modal
+
+### DO PDF Download
+- [x] Create DO PDF generation endpoint
+- [x] Include DO number, order details, items
+- [x] Include shipping address and signature line
+- [x] Wire up download icon to trigger PDF download

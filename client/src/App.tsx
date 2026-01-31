@@ -15,6 +15,7 @@ import DealerCart from "./pages/dealer/Cart";
 import DealerOrders from "./pages/dealer/Orders";
 import DealerLoyalty from "./pages/dealer/Loyalty";
 import DealerChat from "./pages/dealer/Chat";
+import DealerLifecycle from "./pages/dealer/Lifecycle";
 
 // Admin Console Pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/dealer/orders" component={DealerOrders} />
       <Route path="/dealer/loyalty" component={DealerLoyalty} />
       <Route path="/dealer/chat" component={DealerChat} />
+      <Route path="/dealer/lifecycle" component={DealerLifecycle} />
       
       {/* Admin Console Routes */}
       <Route path="/admin" component={AdminDashboard} />

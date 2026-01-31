@@ -14,6 +14,7 @@ import {
   Bell,
   Check,
   Loader2,
+  Recycle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const navItems = [
   { path: "/dealer/catalog", label: "Catalog", icon: Package },
   { path: "/dealer/cart", label: "Cart", icon: ShoppingCart },
   { path: "/dealer/orders", label: "Orders", icon: ClipboardList },
+  { path: "/dealer/lifecycle", label: "My Products", icon: Recycle, isNew: true },
   { path: "/dealer/loyalty", label: "Loyalty", icon: Trophy },
 ];
 

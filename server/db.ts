@@ -521,3 +521,224 @@ export async function getDealerOrderStats(dealerId: number): Promise<{
   
   return { totalOrders, totalSpend, avgOrderValue, lastOrderDate };
 }
+
+
+// ============ QUOTATION HELPERS ============
+
+import { 
+  quotations, Quotation, InsertQuotation,
+  purchaseOrders, PurchaseOrder, InsertPurchaseOrder,
+  invoices, Invoice, InsertInvoice
+} from "../drizzle/schema";
+
+export async function createQuotation(quotation: Omit<InsertQuotation, 'quotationNumber'>): Promise<Quotation> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const quotationNumber = `QT-${new Date().getFullYear()}-${nanoid(8).toUpperCase()}`;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + (quotation.validityDays || 30));
+  
+  const result = await db.insert(quotations).values({
+    ...quotation,
+    quotationNumber,
+    expiresAt,
+  });
+  
+  const insertId = result[0].insertId;
+  const newQuotation = await db.select().from(quotations).where(eq(quotations.id, insertId)).limit(1);
+  return newQuotation[0];
+}
+
+export async function getQuotationById(id: number): Promise<Quotation | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(quotations).where(eq(quotations.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getQuotationByNumber(quotationNumber: string): Promise<Quotation | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(quotations).where(eq(quotations.quotationNumber, quotationNumber)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getDealerQuotations(dealerId: number): Promise<Quotation[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(quotations)
+    .where(eq(quotations.dealerId, dealerId))
+    .orderBy(desc(quotations.createdAt));
+}
+
+export async function getAllQuotations(): Promise<Quotation[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(quotations).orderBy(desc(quotations.createdAt));
+}
+
+export async function updateQuotationStatus(quotationId: number, status: Quotation['status']): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(quotations).set({ status }).where(eq(quotations.id, quotationId));
+}
+
+// ============ PURCHASE ORDER HELPERS ============
+
+export async function createPurchaseOrder(po: Omit<InsertPurchaseOrder, 'poNumber'>): Promise<PurchaseOrder> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const poNumber = `PO-${new Date().getFullYear()}-${nanoid(8).toUpperCase()}`;
+  
+  const result = await db.insert(purchaseOrders).values({
+    ...po,
+    poNumber,
+  });
+  
+  const insertId = result[0].insertId;
+  const newPO = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, insertId)).limit(1);
+  return newPO[0];
+}
+
+export async function getPurchaseOrderById(id: number): Promise<PurchaseOrder | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getPurchaseOrderByNumber(poNumber: string): Promise<PurchaseOrder | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(purchaseOrders).where(eq(purchaseOrders.poNumber, poNumber)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getDealerPurchaseOrders(dealerId: number): Promise<PurchaseOrder[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(purchaseOrders)
+    .where(eq(purchaseOrders.dealerId, dealerId))
+    .orderBy(desc(purchaseOrders.createdAt));
+}
+
+export async function getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(purchaseOrders).orderBy(desc(purchaseOrders.createdAt));
+}
+
+export async function updatePurchaseOrderStatus(poId: number, status: PurchaseOrder['status']): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(purchaseOrders).set({ status }).where(eq(purchaseOrders.id, poId));
+}
+
+// ============ INVOICE HELPERS ============
+
+export async function createInvoice(invoice: Omit<InsertInvoice, 'invoiceNumber'>): Promise<Invoice> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const invoiceNumber = `INV-${new Date().getFullYear()}-${nanoid(8).toUpperCase()}`;
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 30); // Net 30 default
+  
+  const result = await db.insert(invoices).values({
+    ...invoice,
+    invoiceNumber,
+    dueDate,
+  });
+  
+  const insertId = result[0].insertId;
+  const newInvoice = await db.select().from(invoices).where(eq(invoices.id, insertId)).limit(1);
+  return newInvoice[0];
+}
+
+export async function getInvoiceById(id: number): Promise<Invoice | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(invoices).where(eq(invoices.invoiceNumber, invoiceNumber)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getDealerInvoices(dealerId: number): Promise<Invoice[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(invoices)
+    .where(eq(invoices.dealerId, dealerId))
+    .orderBy(desc(invoices.createdAt));
+}
+
+export async function getAllInvoices(): Promise<Invoice[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(invoices).orderBy(desc(invoices.createdAt));
+}
+
+export async function updateInvoiceStatus(invoiceId: number, status: Invoice['status']): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  const updates: Partial<Invoice> = { status };
+  if (status === 'paid') {
+    updates.paidAt = new Date();
+  }
+  
+  await db.update(invoices).set(updates).where(eq(invoices.id, invoiceId));
+}
+
+export async function getInvoiceByPOId(poId: number): Promise<Invoice | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(invoices).where(eq(invoices.poId, poId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// ============ DELIVERY ORDER EXTENDED HELPERS ============
+
+export async function getDeliveryOrderById(id: number): Promise<DeliveryOrder | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(deliveryOrders).where(eq(deliveryOrders.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllDeliveryOrders(): Promise<DeliveryOrder[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(deliveryOrders).orderBy(desc(deliveryOrders.createdAt));
+}
+
+export async function updateDeliveryOrderStatus(doId: number, status: DeliveryOrder['status']): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(deliveryOrders).set({ status }).where(eq(deliveryOrders.id, doId));
+}

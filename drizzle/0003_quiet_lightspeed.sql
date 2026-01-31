@@ -1,0 +1,62 @@
+CREATE TABLE `invoices` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`invoiceNumber` varchar(64) NOT NULL,
+	`poId` int NOT NULL,
+	`doId` int,
+	`dealerId` int NOT NULL,
+	`status` enum('draft','sent','paid','overdue','cancelled') NOT NULL DEFAULT 'draft',
+	`items` json NOT NULL,
+	`subtotal` decimal(10,2) NOT NULL,
+	`tax` decimal(10,2) DEFAULT '0',
+	`discount` decimal(10,2) DEFAULT '0',
+	`total` decimal(10,2) NOT NULL,
+	`paymentTerms` varchar(50) DEFAULT 'Net 30',
+	`dueDate` timestamp,
+	`paidAt` timestamp,
+	`pdfUrl` text,
+	`notes` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `invoices_id` PRIMARY KEY(`id`),
+	CONSTRAINT `invoices_invoiceNumber_unique` UNIQUE(`invoiceNumber`)
+);
+--> statement-breakpoint
+CREATE TABLE `purchase_orders` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`poNumber` varchar(64) NOT NULL,
+	`dealerId` int NOT NULL,
+	`quotationId` int,
+	`status` enum('pending','confirmed','processing','shipped','delivered','cancelled') NOT NULL DEFAULT 'pending',
+	`items` json NOT NULL,
+	`subtotal` decimal(10,2) NOT NULL,
+	`discount` decimal(10,2) DEFAULT '0',
+	`total` decimal(10,2) NOT NULL,
+	`dealerReference` varchar(100),
+	`requestedDeliveryDate` timestamp,
+	`shippingAddress` text,
+	`notes` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `purchase_orders_id` PRIMARY KEY(`id`),
+	CONSTRAINT `purchase_orders_poNumber_unique` UNIQUE(`poNumber`)
+);
+--> statement-breakpoint
+CREATE TABLE `quotations` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`quotationNumber` varchar(64) NOT NULL,
+	`dealerId` int NOT NULL,
+	`createdById` int,
+	`status` enum('draft','sent','accepted','rejected','expired') NOT NULL DEFAULT 'draft',
+	`items` json NOT NULL,
+	`subtotal` decimal(10,2) NOT NULL,
+	`discount` decimal(10,2) DEFAULT '0',
+	`total` decimal(10,2) NOT NULL,
+	`validityDays` int DEFAULT 30,
+	`expiresAt` timestamp,
+	`notes` text,
+	`terms` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `quotations_id` PRIMARY KEY(`id`),
+	CONSTRAINT `quotations_quotationNumber_unique` UNIQUE(`quotationNumber`)
+);

@@ -14,6 +14,9 @@ import {
   Bell,
   Check,
   Loader2,
+  FileText,
+  FileCheck,
+  Receipt,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,9 @@ const navItems = [
   { path: "/dealer/chat", label: "AI Agent", icon: Bot, highlight: true },
   { path: "/dealer/catalog", label: "Catalog", icon: Package },
   { path: "/dealer/cart", label: "Cart", icon: ShoppingCart },
+  { path: "/dealer/quotations", label: "Quotations", icon: FileText },
+  { path: "/dealer/purchase-orders", label: "Purchase Orders", icon: FileCheck },
+  { path: "/dealer/invoices", label: "Invoices", icon: Receipt },
   { path: "/dealer/orders", label: "Orders", icon: ClipboardList },
   { path: "/dealer/loyalty", label: "Loyalty", icon: Trophy },
 ];

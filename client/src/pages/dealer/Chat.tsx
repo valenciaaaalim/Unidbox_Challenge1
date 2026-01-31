@@ -33,6 +33,7 @@ const suggestedPrompts = [
   "I need to restock my usual items",
   "Recommend products for a cabling project",
   "Add 5 CAT6 cables to my cart",
+  "Get me a quote for 50 CAT6 cables",
   "Place my order",
   "Check my order status",
 ];
@@ -174,6 +175,12 @@ export default function DealerChat() {
             } else {
               toast.error("Your cart is empty. Add items before placing an order.");
             }
+          } else if (action.type === "CREATE_QUOTATION") {
+            // Show toast that quotation request has been noted
+            toast.success("Quotation request received! Our team will prepare your quote shortly.", {
+              icon: <FileText className="w-4 h-4 text-blue-500" />,
+              duration: 5000,
+            });
           }
         }
       }

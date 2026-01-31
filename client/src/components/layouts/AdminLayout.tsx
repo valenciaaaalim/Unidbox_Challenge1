@@ -11,6 +11,10 @@ import {
   X,
   Sparkles,
   Bell,
+  FileText,
+  FileCheck,
+  Truck,
+  Receipt,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +29,10 @@ import { adminMetrics, orders } from "@/lib/mockData";
 
 const navItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/admin/quotations", label: "Quotations", icon: FileText },
+  { path: "/admin/purchase-orders", label: "Purchase Orders", icon: FileCheck },
+  { path: "/admin/delivery-orders", label: "Delivery Orders", icon: Truck },
+  { path: "/admin/invoices", label: "Invoices", icon: Receipt },
   { path: "/admin/orders", label: "Orders", icon: ClipboardList, badge: orders.length },
   { path: "/admin/dealers", label: "Dealers", icon: Users, alert: adminMetrics.atRiskDealers.length > 0 },
   { path: "/admin/agents", label: "AI Agents", icon: Bot },

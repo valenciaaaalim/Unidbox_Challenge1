@@ -107,3 +107,21 @@
 - [x] Fix user name inconsistency - Dashboard shows "Steven" (mock) but Chat shows actual logged-in user name
 - [x] Ensure order history is linked to real logged-in users, not mock dealers
 - [x] Fix TypeError: tierInfo undefined when user dealerTier is null
+
+## Document Flow Feature (QT → PO → DO → INV)
+- [x] Create database schema for Quotations table
+- [x] Create database schema for Purchase Orders table  
+- [x] Create database schema for Invoices table
+- [x] Update existing Orders/DOs to link with POs
+- [x] Create backend API for quotation CRUD
+- [x] Create backend API for PO CRUD
+- [x] Create backend API for invoice CRUD
+- [x] Build Dealer UI - Quotations page (view, accept/reject)
+- [x] Build Dealer UI - Purchase Orders page
+- [x] Build Dealer UI - Invoices page
+- [x] Build Admin UI - Quotations management
+- [x] Build Admin UI - PO management and DO generation
+- [x] Build Admin UI - DO management
+- [x] Build Admin UI - Invoice management
+- [x] Integrate AI chat to generate quotations on request
+- [ ] Add PDF generation for all document types

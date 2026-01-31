@@ -20,6 +20,9 @@ import {
   updateOrderStatus,
   createDeliveryOrder,
   getDeliveryOrderByOrderId,
+  getDeliveryOrderById,
+  getAllDeliveryOrders,
+  updateDeliveryOrderStatus,
   createChatSession,
   getChatSession,
   getUserChatSessions,
@@ -38,6 +41,28 @@ import {
   getAllDealers,
   getDealerById,
   getDealerOrderStats,
+  // Quotation helpers
+  createQuotation,
+  getQuotationById,
+  getQuotationByNumber,
+  getDealerQuotations,
+  getAllQuotations,
+  updateQuotationStatus,
+  // Purchase Order helpers
+  createPurchaseOrder,
+  getPurchaseOrderById,
+  getPurchaseOrderByNumber,
+  getDealerPurchaseOrders,
+  getAllPurchaseOrders,
+  updatePurchaseOrderStatus,
+  // Invoice helpers
+  createInvoice,
+  getInvoiceById,
+  getInvoiceByNumber,
+  getDealerInvoices,
+  getAllInvoices,
+  updateInvoiceStatus,
+  getInvoiceByPOId,
 } from "./db";
 
 // Message schema for chat
@@ -82,6 +107,7 @@ function getSystemPrompt(dealerName: string, dealerTier: string): string {
 3. Providing smart product recommendations
 4. Checking order status
 5. Generating marketing content for their products
+6. Creating quotations for bulk orders
 
 DEALER CONTEXT:
 - Name: ${dealerName}
@@ -101,11 +127,13 @@ RESPONSE GUIDELINES:
 9. Keep responses concise but informative
 10. Use markdown formatting for better readability
 11. IMPORTANT: When greeting or addressing the user, use their actual name "${dealerName}" - never use placeholders like #NAME# or similar
+12. When a dealer requests a quotation or quote, create a detailed quotation with product breakdown and include: [ACTION:CREATE_QUOTATION]
 
 SPECIAL COMMANDS:
 - If user says "add to cart" or "I'll take X", include [ACTION:ADD_TO_CART:SKU:QUANTITY] in your response
 - If user says "place order" or "checkout" or "confirm order", include [ACTION:PLACE_ORDER] in your response
 - If user asks about their cart, include [ACTION:GET_CART] in your response
+- If user says "get me a quote", "create quotation", "I need a quotation for", include [ACTION:CREATE_QUOTATION] in your response along with the items in format [QUOTE_ITEMS:SKU1:QTY1,SKU2:QTY2,...]
 `;
 }
 
@@ -381,11 +409,28 @@ export const appRouter = router({
             actions.push({ type: 'GET_CART' });
           }
           
+          // Check for CREATE_QUOTATION action
+          if (content.includes('[ACTION:CREATE_QUOTATION]')) {
+            const quoteItemsMatch = content.match(/\[QUOTE_ITEMS:([^\]]+)\]/);
+            if (quoteItemsMatch) {
+              const itemsStr = quoteItemsMatch[1];
+              const quoteItems = itemsStr.split(',').map(item => {
+                const [sku, qty] = item.split(':');
+                return { sku, quantity: parseInt(qty) };
+              });
+              actions.push({ type: 'CREATE_QUOTATION', quoteItems } as any);
+            } else {
+              actions.push({ type: 'CREATE_QUOTATION' });
+            }
+          }
+          
           // Remove action markers from displayed content
           content = content
             .replace(/\[ACTION:ADD_TO_CART:[A-Z0-9-]+:\d+\]/g, '')
             .replace(/\[ACTION:PLACE_ORDER\]/g, '')
             .replace(/\[ACTION:GET_CART\]/g, '')
+            .replace(/\[ACTION:CREATE_QUOTATION\]/g, '')
+            .replace(/\[QUOTE_ITEMS:[^\]]+\]/g, '')
             .trim();
 
           // Save messages to database if session exists and user is authenticated
@@ -624,6 +669,416 @@ Do NOT include any subject line, just the message body.`;
           isAtRisk: daysSinceLastOrder !== null && daysSinceLastOrder > 7,
           recentOrders: orders.slice(0, 10),
         };
+      }),
+  }),
+
+  // ============ QUOTATIONS ROUTER ============
+  quotations: router({
+    // Create a new quotation (Admin)
+    create: protectedProcedure
+      .input(z.object({
+        dealerId: z.number(),
+        items: z.array(z.object({
+          productId: z.number(),
+          sku: z.string(),
+          name: z.string(),
+          quantity: z.number(),
+          unitPrice: z.string(),
+          discount: z.string().default("0"),
+          total: z.string(),
+        })),
+        subtotal: z.string(),
+        discount: z.string().default("0"),
+        total: z.string(),
+        validityDays: z.number().default(30),
+        notes: z.string().optional(),
+        terms: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const quotation = await createQuotation({
+          dealerId: input.dealerId,
+          createdById: ctx.user.id,
+          items: input.items,
+          subtotal: input.subtotal,
+          discount: input.discount,
+          total: input.total,
+          validityDays: input.validityDays,
+          notes: input.notes,
+          terms: input.terms,
+          status: 'sent',
+        });
+        
+        // Send notification to dealer
+        await createNotification({
+          recipientId: input.dealerId,
+          senderId: ctx.user.id,
+          type: 'system',
+          title: 'New Quotation Received',
+          message: `You have received a new quotation ${quotation.quotationNumber} for $${input.total}. Valid for ${input.validityDays} days.`,
+        });
+        
+        return quotation;
+      }),
+    
+    // Get all quotations (Admin)
+    listAll: protectedProcedure.query(async () => {
+      return await getAllQuotations();
+    }),
+    
+    // Get dealer's quotations
+    listMine: protectedProcedure.query(async ({ ctx }) => {
+      return await getDealerQuotations(ctx.user.id);
+    }),
+    
+    // Get quotation by ID
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await getQuotationById(input.id);
+      }),
+    
+    // Accept quotation (creates PO)
+    accept: protectedProcedure
+      .input(z.object({
+        quotationId: z.number(),
+        dealerReference: z.string().optional(),
+        shippingAddress: z.string().optional(),
+        requestedDeliveryDate: z.date().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const quotation = await getQuotationById(input.quotationId);
+        if (!quotation) throw new Error('Quotation not found');
+        if (quotation.dealerId !== ctx.user.id) throw new Error('Not authorized');
+        if (quotation.status !== 'sent') throw new Error('Quotation cannot be accepted');
+        
+        // Update quotation status
+        await updateQuotationStatus(input.quotationId, 'accepted');
+        
+        // Create Purchase Order from quotation
+        const po = await createPurchaseOrder({
+          dealerId: ctx.user.id,
+          quotationId: input.quotationId,
+          items: quotation.items.map(item => ({
+            productId: item.productId,
+            sku: item.sku,
+            name: item.name,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+          })),
+          subtotal: quotation.subtotal,
+          discount: quotation.discount || "0",
+          total: quotation.total,
+          dealerReference: input.dealerReference,
+          shippingAddress: input.shippingAddress,
+          requestedDeliveryDate: input.requestedDeliveryDate,
+          notes: input.notes,
+        });
+        
+        return { quotation, purchaseOrder: po };
+      }),
+    
+    // Reject quotation
+    reject: protectedProcedure
+      .input(z.object({ quotationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const quotation = await getQuotationById(input.quotationId);
+        if (!quotation) throw new Error('Quotation not found');
+        if (quotation.dealerId !== ctx.user.id) throw new Error('Not authorized');
+        
+        await updateQuotationStatus(input.quotationId, 'rejected');
+        return { success: true };
+      }),
+  }),
+
+  // ============ PURCHASE ORDERS ROUTER ============
+  purchaseOrders: router({
+    // Create a direct PO (without quotation)
+    create: protectedProcedure
+      .input(z.object({
+        items: z.array(z.object({
+          productId: z.number(),
+          sku: z.string(),
+          name: z.string(),
+          quantity: z.number(),
+          unitPrice: z.string(),
+          total: z.string(),
+        })),
+        subtotal: z.string(),
+        discount: z.string().default("0"),
+        total: z.string(),
+        dealerReference: z.string().optional(),
+        shippingAddress: z.string().optional(),
+        requestedDeliveryDate: z.date().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const po = await createPurchaseOrder({
+          dealerId: ctx.user.id,
+          items: input.items,
+          subtotal: input.subtotal,
+          discount: input.discount,
+          total: input.total,
+          dealerReference: input.dealerReference,
+          shippingAddress: input.shippingAddress,
+          requestedDeliveryDate: input.requestedDeliveryDate,
+          notes: input.notes,
+        });
+        
+        return po;
+      }),
+    
+    // Get all POs (Admin)
+    listAll: protectedProcedure.query(async () => {
+      const pos = await getAllPurchaseOrders();
+      // Enrich with dealer info
+      const enrichedPOs = await Promise.all(
+        pos.map(async (po) => {
+          const dealer = await getDealerById(po.dealerId);
+          return { ...po, dealer };
+        })
+      );
+      return enrichedPOs;
+    }),
+    
+    // Get dealer's POs
+    listMine: protectedProcedure.query(async ({ ctx }) => {
+      return await getDealerPurchaseOrders(ctx.user.id);
+    }),
+    
+    // Get PO by ID
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const po = await getPurchaseOrderById(input.id);
+        if (!po) return null;
+        
+        const dealer = await getDealerById(po.dealerId);
+        const quotation = po.quotationId ? await getQuotationById(po.quotationId) : null;
+        
+        return { ...po, dealer, quotation };
+      }),
+    
+    // Update PO status (Admin)
+    updateStatus: protectedProcedure
+      .input(z.object({
+        poId: z.number(),
+        status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updatePurchaseOrderStatus(input.poId, input.status);
+        
+        const po = await getPurchaseOrderById(input.poId);
+        if (po) {
+          // Notify dealer of status change
+          await createNotification({
+            recipientId: po.dealerId,
+            senderId: ctx.user.id,
+            type: 'order_update',
+            title: `PO ${po.poNumber} Status Updated`,
+            message: `Your purchase order ${po.poNumber} status has been updated to: ${input.status}`,
+          });
+        }
+        
+        return { success: true };
+      }),
+    
+    // Generate DO from PO (Admin)
+    generateDO: protectedProcedure
+      .input(z.object({ poId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const po = await getPurchaseOrderById(input.poId);
+        if (!po) throw new Error('Purchase Order not found');
+        
+        // Create an order record first (for DO linkage)
+        const order = await createOrder({
+          userId: po.dealerId,
+          items: po.items,
+          subtotal: po.subtotal,
+          discount: po.discount || "0",
+          total: po.total,
+          status: 'processing',
+          notes: `Generated from PO: ${po.poNumber}`,
+        });
+        
+        // Create DO
+        const deliveryOrder = await createDeliveryOrder(order.id);
+        
+        // Update PO status
+        await updatePurchaseOrderStatus(input.poId, 'processing');
+        
+        // Notify dealer
+        await createNotification({
+          recipientId: po.dealerId,
+          senderId: ctx.user.id,
+          type: 'order_update',
+          title: `Delivery Order Generated`,
+          message: `Delivery Order ${deliveryOrder.doNumber} has been generated for your PO ${po.poNumber}`,
+        });
+        
+        return { order, deliveryOrder };
+      }),
+  }),
+
+  // ============ DELIVERY ORDERS ROUTER ============
+  deliveryOrders: router({
+    // Get all DOs (Admin)
+    listAll: protectedProcedure.query(async () => {
+      return await getAllDeliveryOrders();
+    }),
+    
+    // Get DO by ID
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const deliveryOrder = await getDeliveryOrderById(input.id);
+        if (!deliveryOrder) return null;
+        
+        const order = await getOrderById(deliveryOrder.orderId);
+        return { ...deliveryOrder, order };
+      }),
+    
+    // Update DO status (Admin)
+    updateStatus: protectedProcedure
+      .input(z.object({
+        doId: z.number(),
+        status: z.enum(['generated', 'dispatched', 'in_transit', 'delivered']),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateDeliveryOrderStatus(input.doId, input.status);
+        
+        const deliveryOrder = await getDeliveryOrderById(input.doId);
+        if (deliveryOrder) {
+          const order = await getOrderById(deliveryOrder.orderId);
+          if (order) {
+            // Update order status based on DO status
+            if (input.status === 'delivered') {
+              await updateOrderStatus(order.id, 'delivered');
+            } else if (input.status === 'dispatched' || input.status === 'in_transit') {
+              await updateOrderStatus(order.id, 'shipped');
+            }
+            
+            // Notify dealer
+            await createNotification({
+              recipientId: order.userId,
+              senderId: ctx.user.id,
+              type: 'order_update',
+              title: `Delivery Update: ${deliveryOrder.doNumber}`,
+              message: `Your delivery ${deliveryOrder.doNumber} status: ${input.status}`,
+            });
+          }
+        }
+        
+        return { success: true };
+      }),
+  }),
+
+  // ============ INVOICES ROUTER ============
+  invoices: router({
+    // Create invoice from PO/DO (Admin)
+    create: protectedProcedure
+      .input(z.object({
+        poId: z.number(),
+        doId: z.number().optional(),
+        tax: z.string().default("0"),
+        paymentTerms: z.string().default("Net 30"),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const po = await getPurchaseOrderById(input.poId);
+        if (!po) throw new Error('Purchase Order not found');
+        
+        // Check if invoice already exists for this PO
+        const existingInvoice = await getInvoiceByPOId(input.poId);
+        if (existingInvoice) throw new Error('Invoice already exists for this PO');
+        
+        const taxAmount = parseFloat(input.tax);
+        const subtotal = parseFloat(po.subtotal);
+        const discount = parseFloat(po.discount || "0");
+        const total = subtotal + taxAmount - discount;
+        
+        const invoice = await createInvoice({
+          poId: input.poId,
+          doId: input.doId,
+          dealerId: po.dealerId,
+          items: po.items,
+          subtotal: po.subtotal,
+          tax: input.tax,
+          discount: po.discount || "0",
+          total: total.toFixed(2),
+          paymentTerms: input.paymentTerms,
+          notes: input.notes,
+          status: 'sent',
+        });
+        
+        // Notify dealer
+        await createNotification({
+          recipientId: po.dealerId,
+          senderId: ctx.user.id,
+          type: 'system',
+          title: 'New Invoice',
+          message: `Invoice ${invoice.invoiceNumber} for $${total.toFixed(2)} has been generated. Payment due: ${input.paymentTerms}`,
+        });
+        
+        return invoice;
+      }),
+    
+    // Get all invoices (Admin)
+    listAll: protectedProcedure.query(async () => {
+      const invoicesList = await getAllInvoices();
+      // Enrich with dealer info
+      const enrichedInvoices = await Promise.all(
+        invoicesList.map(async (inv) => {
+          const dealer = await getDealerById(inv.dealerId);
+          const po = await getPurchaseOrderById(inv.poId);
+          return { ...inv, dealer, purchaseOrder: po };
+        })
+      );
+      return enrichedInvoices;
+    }),
+    
+    // Get dealer's invoices
+    listMine: protectedProcedure.query(async ({ ctx }) => {
+      return await getDealerInvoices(ctx.user.id);
+    }),
+    
+    // Get invoice by ID
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const invoice = await getInvoiceById(input.id);
+        if (!invoice) return null;
+        
+        const dealer = await getDealerById(invoice.dealerId);
+        const po = await getPurchaseOrderById(invoice.poId);
+        const deliveryOrder = invoice.doId ? await getDeliveryOrderById(invoice.doId) : null;
+        
+        return { ...invoice, dealer, purchaseOrder: po, deliveryOrder };
+      }),
+    
+    // Update invoice status (Admin)
+    updateStatus: protectedProcedure
+      .input(z.object({
+        invoiceId: z.number(),
+        status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled']),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateInvoiceStatus(input.invoiceId, input.status);
+        
+        const invoice = await getInvoiceById(input.invoiceId);
+        if (invoice && input.status === 'paid') {
+          // Notify dealer of payment confirmation
+          await createNotification({
+            recipientId: invoice.dealerId,
+            senderId: ctx.user.id,
+            type: 'system',
+            title: 'Payment Confirmed',
+            message: `Payment for invoice ${invoice.invoiceNumber} has been confirmed. Thank you!`,
+          });
+        }
+        
+        return { success: true };
       }),
   }),
 });

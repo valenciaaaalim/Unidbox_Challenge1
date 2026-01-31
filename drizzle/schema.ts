@@ -177,3 +177,120 @@ export const notifications = mysqlTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+/**
+ * Quotations table - price quotes sent to dealers
+ * Flow: Admin/AI creates quotation → Dealer accepts → Creates PO
+ */
+export const quotations = mysqlTable("quotations", {
+  id: int("id").autoincrement().primaryKey(),
+  quotationNumber: varchar("quotationNumber", { length: 64 }).notNull().unique(),
+  /** Dealer who receives the quotation */
+  dealerId: int("dealerId").notNull(),
+  /** Admin who created the quotation (null if AI-generated) */
+  createdById: int("createdById"),
+  status: mysqlEnum("status", ["draft", "sent", "accepted", "rejected", "expired"]).default("draft").notNull(),
+  /** Quotation items */
+  items: json("items").$type<Array<{
+    productId: number;
+    sku: string;
+    name: string;
+    quantity: number;
+    unitPrice: string;
+    discount: string;
+    total: string;
+  }>>().notNull(),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 10, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  /** Validity period in days */
+  validityDays: int("validityDays").default(30),
+  expiresAt: timestamp("expiresAt"),
+  notes: text("notes"),
+  /** Terms and conditions */
+  terms: text("terms"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Quotation = typeof quotations.$inferSelect;
+export type InsertQuotation = typeof quotations.$inferInsert;
+
+/**
+ * Purchase Orders table - formal orders from dealers
+ * Flow: Dealer creates PO (from quotation or direct) → Admin processes → Creates DO
+ */
+export const purchaseOrders = mysqlTable("purchase_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  poNumber: varchar("poNumber", { length: 64 }).notNull().unique(),
+  /** Dealer who created the PO */
+  dealerId: int("dealerId").notNull(),
+  /** Reference to quotation if PO was created from one */
+  quotationId: int("quotationId"),
+  status: mysqlEnum("status", ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]).default("pending").notNull(),
+  /** PO items */
+  items: json("items").$type<Array<{
+    productId: number;
+    sku: string;
+    name: string;
+    quantity: number;
+    unitPrice: string;
+    total: string;
+  }>>().notNull(),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 10, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  /** Dealer's reference number */
+  dealerReference: varchar("dealerReference", { length: 100 }),
+  /** Requested delivery date */
+  requestedDeliveryDate: timestamp("requestedDeliveryDate"),
+  /** Shipping address */
+  shippingAddress: text("shippingAddress"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type InsertPurchaseOrder = typeof purchaseOrders.$inferInsert;
+
+/**
+ * Invoices table - payment requests after delivery
+ * Flow: DO delivered → Admin generates invoice → Dealer pays
+ */
+export const invoices = mysqlTable("invoices", {
+  id: int("id").autoincrement().primaryKey(),
+  invoiceNumber: varchar("invoiceNumber", { length: 64 }).notNull().unique(),
+  /** Reference to PO */
+  poId: int("poId").notNull(),
+  /** Reference to DO */
+  doId: int("doId"),
+  /** Dealer to be invoiced */
+  dealerId: int("dealerId").notNull(),
+  status: mysqlEnum("status", ["draft", "sent", "paid", "overdue", "cancelled"]).default("draft").notNull(),
+  /** Invoice items (copied from PO for record) */
+  items: json("items").$type<Array<{
+    productId: number;
+    sku: string;
+    name: string;
+    quantity: number;
+    unitPrice: string;
+    total: string;
+  }>>().notNull(),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).default("0"),
+  discount: decimal("discount", { precision: 10, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  /** Payment terms (e.g., "Net 30") */
+  paymentTerms: varchar("paymentTerms", { length: 50 }).default("Net 30"),
+  dueDate: timestamp("dueDate"),
+  paidAt: timestamp("paidAt"),
+  /** PDF URL stored in S3 */
+  pdfUrl: text("pdfUrl"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = typeof invoices.$inferInsert;
